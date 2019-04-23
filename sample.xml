@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<items>
+    <item id="AXIS0">
+        <title>title_1</title>
+        <path>111111</path>
+        <acc>500</acc>
+        <desc>description1</desc>
+        <title2>3452345</title2>
+    </item>
+    <item id="AXIS1">
+        <title>title_2</title>
+        <desc>description2</desc>
+        <a111>1111</a111>
+        <path>222222</path>
+    </item>
+    <item id="AXIS2">
+        <path>222222</path>
+        <desc>description1</desc>
+    </item>
+</items>

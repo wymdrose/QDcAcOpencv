@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+ <sentinel_ldk:license schema_version="1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:sentinel_ldk="http://www.safenet-inc.com/sentinelldk">
+   <!--License Definition-->
+   <enforcement_type>SuperDog or SuperDog-SL-UserMode</enforcement_type>
+   <product>
+      <id>65471</id>
+      <name>默认产品</name>
+      <clone_protection_ex>
+       <physical_machine>PlatformDefault</physical_machine>
+       <virtual_machine>Disable</virtual_machine>
+      </clone_protection_ex>
+      <feature>
+         <id>25</id>
+         <name>drose</name>
+         <license_properties>
+            <perpetual/>
+            <remote_desktop_access>Yes</remote_desktop_access>
+         </license_properties>
+      </feature>
+   </product>
+   <memory>
+      <rw_memory_segment>
+         <offset>0</offset>
+         <!--<input_type>0</input_type>-->
+         <content>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</content>
+      </rw_memory_segment>
+   </memory>
+ </sentinel_ldk:license>
