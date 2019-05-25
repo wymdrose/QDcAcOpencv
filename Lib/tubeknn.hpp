@@ -36,7 +36,7 @@ public:
 		imshow("image_bin", image_bin);
 
 		Mat image_dil;
-		Mat element = getStructuringElement(MORPH_RECT, Size(10, 10));
+		Mat element = getStructuringElement(MORPH_RECT, Size(1, 1));
 		dilate(image_bin, image_dil, element);
 		imshow("image_dil1", image_dil);
 
@@ -97,8 +97,17 @@ public:
 		threshold(tmp, tmp, 100, 255, THRESH_BINARY);
 		cv::resize(tmp, tmp, Size(NORMWIDTH, NORMHEIGHT));
 		traindata.push_back(tmp.reshape(0, 1));
-		trainlabel.push_back(int('E'));
+		trainlabel.push_back(int('E'));	
+		//
+		sprintf(trainfile, "%s\\dot.jpg", TRAINPATH);
+		tmp = imread(trainfile, IMREAD_GRAYSCALE);
+		threshold(tmp, tmp, 100, 255, THRESH_BINARY);
+		cv::resize(tmp, tmp, Size(NORMWIDTH, NORMHEIGHT));
+		traindata.push_back(tmp.reshape(0, 1));
+		trainlabel.push_back(int('D'));
 
+
+		//
 		traindata.convertTo(traindata, CV_32F);
 
 
@@ -121,8 +130,13 @@ public:
 			{
 				result += "E";
 			}
+			else if (knn->predict(tube.at(i)) == 'D')
+			{
+				result += ".";
+			}
 			else
 			{
+				auto a = QString::number(knn->predict(tube.at(i)));
 				result +=QString::number(knn->predict(tube.at(i)));
 			}
 			

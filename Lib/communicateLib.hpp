@@ -6,10 +6,11 @@
 #include <QHostAddress>
 #include <QTcpSocket>
 #include <QDateTime>
+#include <memory>
 
 namespace CommunicateClass
 {
-	class CommunicateInterface
+	class CommunicateInterface : public QObject
 	{
 	public:
 		virtual bool init() = 0;
@@ -18,10 +19,11 @@ namespace CommunicateClass
 
 	class ComPortOne : public CommunicateInterface
 	{
+		Q_OBJECT
 	public:
 		ComPortOne(unsigned int portNo, int baudRate) :mPortNo(portNo), mBaudRate(baudRate)
 		{
-		//	connect(mpSerial, SIGNAL(readyRead()), this, SLOT(recData()));
+		//	connect(&*mpSerial, SIGNAL(readyRead()), this, SLOT(recvMsg()), Qt::UniqueConnection);
 
 			mpSerial->setPortName(QString("COM%1").arg(portNo));
 			mpSerial->setBaudRate(baudRate);
@@ -34,7 +36,6 @@ namespace CommunicateClass
 		~ComPortOne()
 		{
 			mpSerial->close();
-			delete mpSerial;
 		}
 
 		void close()
@@ -73,18 +74,25 @@ namespace CommunicateClass
 
 		inline void recData()
 		{
-
-			for (size_t i = 0; i < 10; i++)
+			mRecData.clear();
+			QTime time;
+			time.start();
+			
+			forever
 			{
-				while (mpSerial->waitForReadyRead(10))
+				if (mRecData.length() > 10 || time.elapsed() > 5000)
 				{
-					QByteArray tRec;
-					tRec = mpSerial->readAll();
-
-					mRecData += tRec.data();
+					break;
 				}
-			}
 
+				while (mpSerial->waitForReadyRead(50))
+				{
+					QByteArray tRec = mpSerial->readAll();
+					mRecData += tRec.data();
+				}			
+			}
+			
+			
 			qDebug() << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss:zzz") << mPortNo << "rec:" << mRecData;
 			
 		}
@@ -99,16 +107,29 @@ namespace CommunicateClass
 			auto a = send(tSend);
 			
 			qDebug() << "send success?" << a << "\r";
+			
 			recData();
+
 			mRecv = mRecData;
 
 			return true;
 		}
 
+	public slots:
+		void recvMsg()
+		{
+			mRecData.clear();
+
+			QByteArray tRec = mpSerial->readAll();
+			mRecData += tRec.data();
+
+			qDebug() << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss:zzz") << mPortNo << "rec:" << mRecData;
+		}
+
 	private:
 		unsigned int mPortNo;
 		int mBaudRate;
-		QSerialPort *mpSerial = new QSerialPort();
+		std::shared_ptr <QSerialPort> mpSerial = std::make_shared<QSerialPort>();
 		QString mRecData;
 	};
 

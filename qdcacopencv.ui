@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>697</width>
+    <width>674</width>
     <height>510</height>
    </rect>
   </property>
@@ -18,74 +18,122 @@
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>10</y>
+      <y>30</y>
       <width>621</width>
       <height>431</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
       <string>Tab 1</string>
      </attribute>
-     <widget class="QTableWidget" name="tableWidget">
-      <property name="geometry">
-       <rect>
-        <x>30</x>
-        <y>20</y>
-        <width>511</width>
-        <height>281</height>
-       </rect>
-      </property>
-      <row>
-       <property name="text">
-        <string>新建行</string>
-       </property>
-      </row>
-      <row>
-       <property name="text">
-        <string>新建行</string>
-       </property>
-      </row>
-      <row>
-       <property name="text">
-        <string>新建行</string>
-       </property>
-      </row>
-      <column>
-       <property name="text">
-        <string>新建列</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>新建列</string>
-       </property>
-      </column>
-      <column>
-       <property name="text">
-        <string>新建列</string>
-       </property>
-      </column>
-      <item row="0" column="0">
-       <property name="text">
-        <string/>
-       </property>
-      </item>
-     </widget>
      <widget class="QPushButton" name="pushButtonStart">
       <property name="geometry">
        <rect>
-        <x>470</x>
-        <y>340</y>
+        <x>440</x>
+        <y>270</y>
         <width>93</width>
         <height>28</height>
        </rect>
       </property>
       <property name="text">
        <string>Start</string>
+      </property>
+     </widget>
+     <widget class="QTextBrowser" name="textBrowser">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>30</y>
+        <width>311</width>
+        <height>291</height>
+       </rect>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_3">
+     <attribute name="title">
+      <string>页</string>
+     </attribute>
+     <widget class="QRadioButton" name="radioButton">
+      <property name="geometry">
+       <rect>
+        <x>50</x>
+        <y>40</y>
+        <width>115</width>
+        <height>19</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>RadioButton</string>
+      </property>
+     </widget>
+     <widget class="QRadioButton" name="radioButton_2">
+      <property name="geometry">
+       <rect>
+        <x>240</x>
+        <y>40</y>
+        <width>115</width>
+        <height>19</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>RadioButton</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="checkBox">
+      <property name="geometry">
+       <rect>
+        <x>60</x>
+        <y>110</y>
+        <width>91</width>
+        <height>19</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>CheckBox</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="checkBox_2">
+      <property name="geometry">
+       <rect>
+        <x>60</x>
+        <y>160</y>
+        <width>91</width>
+        <height>19</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>CheckBox</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="checkBox_3">
+      <property name="geometry">
+       <rect>
+        <x>60</x>
+        <y>210</y>
+        <width>91</width>
+        <height>19</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>CheckBox</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="checkBox_4">
+      <property name="geometry">
+       <rect>
+        <x>60</x>
+        <y>260</y>
+        <width>91</width>
+        <height>19</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>CheckBox</string>
       </property>
      </widget>
     </widget>
@@ -102,6 +150,11 @@
         <height>351</height>
        </rect>
       </property>
+      <column>
+       <property name="text">
+        <string notr="true">1</string>
+       </property>
+      </column>
      </widget>
      <widget class="QGroupBox" name="groupBoxId">
       <property name="geometry">
@@ -196,7 +249,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>697</width>
+     <width>674</width>
      <height>26</height>
     </rect>
    </property>

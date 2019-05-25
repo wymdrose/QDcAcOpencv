@@ -36,11 +36,37 @@ public:
 		}
 
 		QString tRecv;
-		mpCommunicate->communicate("*RST", tRecv);
-		mpCommunicate->communicate("*CLS", tRecv);
+		mpCommunicate->communicate("*RST;*CLS\r\n", tRecv);
+
+//		mpCommunicate->communicate("CONF:VOLT:DC 10,0.001,(@101)\r\n", tRecv);
+//		mpCommunicate->communicate("READ?\r\n", tRecv);
 		
+//		mpCommunicate->communicate("MEASure:VOLTage:DC? (@103)\r\n", tRecv);
+	
 		return 0;
 	}
+
+	enum TypeMeasure{
+		VoltageAc, VoltageDc, CurrentAc, CurrentDc, Frequency
+	};
+
+	const QString voltageAc = "VOLT:AC?";
+	const QString voltageDc = "VOLT:DC?";
+	const QString currentAc = "CURR:AC?";
+	const QString currentDc = "CURR:DC?";
+	const QString frequency = "FRES?";
+
+	bool getMeasure(const QString type, QString channel, float& value)
+	{
+		QString cmd = "MEAS:" + type + " (@" + channel + ")\r\n";
+		QString tRecv;
+		mpCommunicate->communicate(cmd, tRecv);
+
+		value = tRecv.toFloat();
+
+		return true;
+	}
+
 
 private:
 	std::shared_ptr<CommunicateClass::CommunicateInterface> mpCommunicate;
