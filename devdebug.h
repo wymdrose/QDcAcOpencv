@@ -12,6 +12,8 @@ public:
 	DevDebug(QWidget *parent = 0);
 	~DevDebug();
 
+	void closeEvent(QCloseEvent *event);
+
 private:
 	Ui::DevDebug ui;
 };

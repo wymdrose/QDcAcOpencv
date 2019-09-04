@@ -232,15 +232,17 @@ void QDcAcOpencv::gPointInit(){
 	
 	QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
 	
-
 	gpUi = &ui;
 	gpSignal = std::make_shared<Drose::MySignalUi>();
+	gpMytimer = std::make_shared<Drose::Mytimer>();
 	gpColor = std::make_shared<OpencvApi::ColorExtract>();
 	gpChroma62000H = std::make_shared<InstrumentApi::Chroma62000H>(settings.value("uartNo/chroma62000H").toInt(), 115200);
 	gpChroma62000H->init(settings.value("GPIB/chroma62000H").toInt());
+	gpChroma62000H->confOutput(false);
 
 	gpChroma63800 = std::make_shared<InstrumentApi::Chroma63800>(settings.value("uartNo/chroma63800").toInt(), 57600);
-	gpChroma63800->init(settings.value("GPIB/chroma63800").toInt());
+	gpChroma63800->init();
+//	gpChroma63800->init(settings.value("GPIB/chroma63800").toInt());
 	
 	/*
 	gpItechIt8600 = std::make_shared<InstrumentApi::ItechIt8600>(settings.value("netIp/itechIt8600").toString(), 30000);
@@ -282,13 +284,18 @@ void _afterTest(bool result){
 	gpChroma62000H->setVoltage("0");
 	gpChroma62000H->setCurrent("0");
 	gpChroma62000H->confOutput(false);
-
+	//
+	gpDmc1380->SetOutput(8 + 10, 1);
+	gpDmc1380->SetOutput(8 + 16, 1);
 
 	gpSignal->colorSignal(gpUi->pushButtonStart, "QPushButton{background:}");
 
 	gpSignal->textSignal(gpUi->labelResult, result ? QStringLiteral("OK") : QStringLiteral("NG"));
 	gpSignal->colorSignal(gpUi->labelResult, result ? "QLabel{background:lightgreen}" : "QLabel{background:red}");
-	gpSignal->showDialogSignal("Result", result ? QStringLiteral("OK") : QStringLiteral("NG"));
+	if (result)
+	{
+		gpSignal->showDialogSignal("Result", QStringLiteral("OK"));
+	}
 
 	gpSignal->textSignal(gpUi->textBrowser, result ? "Passed." :"Failed.");
 		
@@ -313,6 +320,8 @@ inline void _runStateUpdate(RunState state){
 }
 
 void Drose::MyThread2::run(){
+	
+//	float ar = _getResistance();
 
 	gpSignal->showMsgSignal(gpUi->textBrowser, "run start.");
 

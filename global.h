@@ -4,7 +4,7 @@
 #include "ui_qdcacopencv.h"
 #include <windows.h>
 #include <memory>
-
+#include <mytimer.h>
 #include <mysignal.h>
 #include <filelib.h>
 #include <tubeknn.h>
@@ -29,12 +29,12 @@
 #include <QtSql\QSqlTableModel>
 
 #pragma comment(lib, "KeySight.lib")
-#pragma comment(lib, "chroma.lib")
 #pragma comment(lib, "TubeKnn.lib")
 
 extern  Ui::QDcAcOpencvClass* gpUi;
 extern  QString gExePath;
 extern  std::shared_ptr<Drose::MySignalUi> gpSignal;
+extern  std::shared_ptr<Drose::Mytimer> gpMytimer;
 extern  std::shared_ptr<OpencvApi::ColorExtract> gpColor;
 extern  std::shared_ptr<InstrumentApi::Chroma62000H> gpChroma62000H;
 extern  std::shared_ptr<InstrumentApi::Chroma63800> gpChroma63800;
@@ -54,9 +54,10 @@ extern  std::vector<std::vector<QStringList>> gTestVector2;
 Ui::QDcAcOpencvClass* gpUi;\
 QString gExePath;\
 std::shared_ptr<Drose::MySignalUi> gpSignal;\
+std::shared_ptr<Drose::Mytimer> gpMytimer;\
 std::shared_ptr<OpencvApi::ColorExtract> gpColor;\
 std::shared_ptr<InstrumentApi::Chroma62000H> gpChroma62000H;\
-	std::shared_ptr<InstrumentApi::Chroma63800> gpChroma63800;\
+std::shared_ptr<InstrumentApi::Chroma63800> gpChroma63800;\
 std::shared_ptr<InstrumentApi::ItechIt8600> gpItechIt8600;\
 std::shared_ptr<InstrumentApi::ItechIt8800> gpItechIt8800;\
 std::shared_ptr<InstrumentApi::Ks34970A_2A> gpKs34970A_2A;\

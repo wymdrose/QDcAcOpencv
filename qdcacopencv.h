@@ -3,7 +3,8 @@
 
 #include <QtWidgets/QMainWindow>
 #include "ui_qdcacopencv.h"
-#include <mythread.hpp>
+
+#include "global.h"
 
 class QDcAcOpencv : public QMainWindow
 {
@@ -13,11 +14,25 @@ public:
 	QDcAcOpencv(QWidget *parent = 0);
 	~QDcAcOpencv();
 
-private slots:
-	void pushButtonStart();
+	void loadPara();
+	void gPointInit();
+
+public:
+	void beforeTest();
+
 
 private:
-	Drose::MyThread2 mMyThread;
+	QTableWidget* mpCurTableWidgetPara;
+	std::shared_ptr<FileIo::CsvFile> mCurParaCsv;
+
+private slots:
+	void pushButtonStart();
+	void pushButtonStop();
+	void pushButtonPause();
+
+private:
+	QString mParaFile;
+	std::shared_ptr<Drose::MyThread2> pmMyThread;
 	Ui::QDcAcOpencvClass ui;
 	
 };

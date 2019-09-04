@@ -7,13 +7,24 @@
 namespace ParaConfig
 {
 	inline float _getDcVolt(){
+		gpWt230->tabChannel(WT230_CH1);
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
 		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, settings.value("Channel/KsChroma").toString());
 	}
 
 	inline float _getAcVolt(){
+		gpWt230->tabChannel(WT230_CH3);
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
 		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageAc, settings.value("Channel/Ks8600").toString());
+	}
+
+	inline void _setAcSource(float volt){
+		gpDmc1380->RelMove(0, PULSE_PER_VOLT * volt);
+	}
+
+	inline float _getAcSource(){
+		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
+		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageAc, settings.value("Channel/KsAcSource").toString());
 	}
 
 	inline float _getAcFreq(){
@@ -21,17 +32,33 @@ namespace ParaConfig
 		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->frequency, settings.value("Channel/Ks8600").toString());
 	}
 
+	inline float _getResistance(){
+		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
+		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->resistance, settings.value("Channel/resistance").toString());
+	}
 
 	inline float _getDcCurr(){
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
 		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, settings.value("Channel/KsResistanceVolt").toString()) * RESISTANCE;
 	}
 	
+	inline float _getFanValue(){
+		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
+		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, settings.value("Channel/Fan").toString());
+	}
+
 	inline void _pushKey(int keyNo, int delay){
 		gpDmc1380->SetOutput(8 + keyNo, 0);
 		QThread::msleep(delay);
 		gpDmc1380->SetOutput(8 + keyNo, 1);
 		QThread::msleep(500);
+	}
+
+	inline void _relay(int relayNo, QString on_off)
+	{
+		int relayIo = (on_off == "ON") ? 0 : 1 ;
+		gpDmc1380->SetOutput(8 + 9 + relayNo, relayIo);
+		QThread::msleep(300);
 	}
 
 	inline void _dialCode(int dialNo, QString on_off)
@@ -81,10 +108,8 @@ namespace ParaConfig
 
 	QString inline _getLedString(){
 		gpMindVision->snapshot(gExePath + "/Snapshot/tSnap");
-		Sleep(1000);
 		gpMindVision->snapshot(gExePath + "/Snapshot/tSnap");
-		Sleep(1000);
-
+		Sleep(300);
 		/*
 		Mat roi;
 		MachineVision::roiSnap(gExePath + "/Snapshot/tSnap.BMP", roi);
@@ -105,6 +130,37 @@ namespace ParaConfig
 		else{
 			return _getLedString().toFloat() / 10.0;
 		}
+	}
+
+	bool _lightProcess(ValueS set, QString& msg)
+	{
+		double resis[3];
+		for (size_t i = 0; i < 3; i++)
+		{
+			resis[i] = _getResistance();
+			Sleep(500);
+		}
+
+		gpSignal->showMsgSignal(gpUi->textBrowser, QString("_lightProcess:%0,%1,%2").arg(resis[0]).arg(resis[1]).arg(resis[2]));
+
+		if (set.so == "FLASH")
+		{
+			if (qAbs(resis[0] - resis[1]) > 1000000 || qAbs(resis[1] - resis[2]) > 1000000
+				|| qAbs(resis[0] - resis[2]) > 1000000)
+			{
+				return true;
+			}
+		}
+		else
+		{
+			if (qAbs(resis[0] - resis[1]) < 1000000 || qAbs(resis[1] - resis[2]) < 1000000
+				|| qAbs(resis[0] - resis[2]) < 1000000)
+			{
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	bool _speProcess(ValueS set, QString& msg)
@@ -172,6 +228,137 @@ namespace ParaConfig
 		return true;
 	}
 
+	bool _dclProcess(CmdSet& cmdSet, QString& msg)
+	{
+		if (cmdSet.type == SET)
+		{
+
+			if (cmdSet.values.so == "ON")
+			{
+				gpItechIt8800->setInput("ON");
+				return true;
+			}
+			else if (cmdSet.values.so == "OFF")
+			{
+				gpItechIt8800->setCurrent("0");
+				gpItechIt8800->setInput("OFF");
+				return true;
+			}
+			else
+			{
+				gpItechIt8800->setCurrent(cmdSet.values.so);
+				gpItechIt8800->setInput("ON");
+			}
+		}
+		else if (cmdSet.type == CHECK)
+		{
+			gpWt230->getPower(WT230_CH3, cmdSet.values.is);
+
+			msg += QStringLiteral("DC¸ºÔØ%0A ").arg(cmdSet.values.is);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool _aclProcess(CmdSet& cmdSet, QString& msg)
+	{
+		if (cmdSet.type == SET)
+		{
+
+			if (cmdSet.values.so == "ON")
+			{
+				gpChroma63800->setInput("ON");
+				return true;
+			}
+			else if (cmdSet.values.so == "OFF")
+			{
+				gpChroma63800->setPower("0");
+				gpChroma63800->setInput("OFF");
+				return true;
+			}
+			else
+			{
+				if (cmdSet.cmd.right(1) == "A")
+				{
+				//	gpChroma63800->setCurrent(cmdSet.values.so);
+				}
+				else
+				{
+					gpChroma63800->setPower(cmdSet.values.so);
+				}
+				
+				gpChroma63800->setInput("ON");
+			}
+		}
+		else if (cmdSet.type == CHECK)
+		{
+			if (cmdSet.cmd.right(1) == "A")
+			{
+
+			}
+			else
+			{
+				gpWt230->getPower(WT230_CH3, cmdSet.values.is);
+				msg += QStringLiteral("AC¸ºÔØ%0W ").arg(cmdSet.values.is);
+			}
+			
+			if (_checkSet(cmdSet.values) == false)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool _acsProcess(ValueS values)
+	{
+		gpDmc1380->SetOutput(8 + 16, 1);
+
+		if (values.so == "OFF")
+		{
+			gpDmc1380->SetOutput(8 + 16, 1);
+			return true;
+		}
+
+		float curValue(0.0);
+		float setValue = values.so.toFloat();
+		
+		for (size_t i = 0; i < 100; i++)
+		{
+			curValue = _getAcSource();
+
+			if (fabs(curValue - setValue) < 3)
+			{
+				break;
+			}
+
+			while (!gpDmc1380->CheckDone(0))
+			{
+				Sleep(300);
+			}
+			
+			gpDmc1380->SetPos(0,0);
+			gpDmc1380->RelMove(0, 500 * (setValue - curValue) / fabs(curValue - setValue), 5000);	
+		}
+
+		values.is = QString::number(_getAcSource());
+		
+		if (_checkSet(values) == false)
+		{
+			return false;
+		}
+
+		gpDmc1380->SetOutput(8 + 16, 0);
+
+		return true;
+	}
+
 	bool _cmdParse(CmdSet& cmdSet, QString& msg)
 	{
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
@@ -206,43 +393,20 @@ namespace ParaConfig
 			{
 				gpChroma62000H->setVoltage(QString::number(gpChroma62000H->getVolt() - cmdSet.values.so.toFloat()));
 				gpChroma62000H->confOutput(true);
-			}
-
-
-			
+			}			
 		}
-		else if (cmdSet.cmd == "ACL")
+		else if (cmdSet.cmd.left(3) == "ACL")
 		{
-			if (cmdSet.type == SET)
+			if (_aclProcess(cmdSet, msg) == false)
 			{
-				
-				if (cmdSet.values.so == "ON")
-				{
-					gpChroma63800->setInput("ON");
-					return true;
-				}
-				else if (cmdSet.values.so == "OFF")
-				{
-					gpChroma63800->setPower("0");
-					gpChroma63800->setInput("OFF");
-					return true;
-				}
-				else
-				{
-					gpChroma63800->setPower(cmdSet.values.so);
-					gpChroma63800->setInput("ON");
-				}
+				goto Error;
 			}
-			else if (cmdSet.type == CHECK)
+		}
+		else if (cmdSet.cmd == "DCL")
+		{
+			if (_dclProcess(cmdSet, msg) == false)
 			{
-				gpWt230->getPower(WT230_CH3, cmdSet.values.is);
-
-				msg += QStringLiteral("AC¸ºÔØ%0W ").arg(cmdSet.values.is);
-
-				if (_checkSet(cmdSet.values) == false)
-				{
-					goto Error;
-				}
+				goto Error;
 			}
 		}
 		else if (cmdSet.cmd == "ACV")
@@ -265,6 +429,17 @@ namespace ParaConfig
 				goto Error;
 			}
 		}
+		else if (cmdSet.cmd == "ACS")
+		{
+			if (_acsProcess(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd.left(5) == "RELAY")
+		{
+			_relay(cmdSet.cmd.right(1).toInt(), cmdSet.values.so);
+		}
 		else if (cmdSet.cmd == "KEY1")
 		{
 			_pushKey(1, cmdSet.values.so.toInt());
@@ -283,7 +458,15 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "WAIT")
 		{
-			Sleep(cmdSet.values.so.toInt());
+			int delay = cmdSet.values.so.toInt();
+			if (delay > 3000)
+			{
+				gpMytimer->countdownSignal(delay/1000);
+			}
+			else
+			{
+				Sleep(delay);
+			}		
 		}
 		else if (cmdSet.cmd == "LED")
 		{
@@ -311,6 +494,17 @@ namespace ParaConfig
 				goto Error;
 			}			
 		}
+		else if (cmdSet.cmd == "DCC")
+		{
+			float tDcc = _getDcCurr();
+			msg += QStringLiteral("DCC:%0 ").arg(tDcc);
+			cmdSet.values.is = tDcc;
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
 		else if (cmdSet.cmd == "LED-DCC")
 		{
 			float tLed = _getLedValue();
@@ -333,13 +527,40 @@ namespace ParaConfig
 				goto Error;
 			}
 		}
+		else if (cmdSet.cmd == "MSG")
+		{
+			bool question = false;
+			
+			gpSignal->showBlockSignal("", cmdSet.values.so, question);
+			
+			if (!question){
+				msg += cmdSet.values.so;
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd == "LIGHT")
+		{
+			if (_lightProcess(cmdSet.values, msg) == false)
+			{
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd == "FAN")
+		{
+			float tFan = _getFanValue();
+			msg += QStringLiteral("FAN:%0 ").arg(tFan);
+			cmdSet.values.is = QString("%1").arg(tFan);
 
-
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
 
 		return true;
 
 	Error:
-		msg += QStringLiteral(" ³¬·¶Î§[%1,%2] ").arg(cmdSet.values.tu).arg(cmdSet.values.to);
+		msg += QStringLiteral(" NG:%0[%1,%2] ").arg(cmdSet.values.so).arg(cmdSet.values.tu).arg(cmdSet.values.to);
 		return false;
 	}
 

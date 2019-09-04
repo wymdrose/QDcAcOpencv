@@ -50,6 +50,7 @@ VisionPreview::~VisionPreview(){
 void VisionPreview::closeEvent(QCloseEvent *event)
 {
 	timer->stop();
+	gpChroma62000H->confOutput(false);
 }
 
 void VisionPreview::update(){
