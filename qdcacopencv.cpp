@@ -5,8 +5,10 @@
 #include "iodebug.h"
 #include "mydefine.h"
 #include <QFileDialog>
+#include <QScrollbar>
 #include "paraparse.hpp"
 #include "scansn.h"
+#include <QComboBox>
 
 GLOBAL
 
@@ -49,6 +51,11 @@ QDcAcOpencv::QDcAcOpencv(QWidget *parent)
 	connect(ui.pushButtonPara, &QPushButton::clicked, [this]() {
 		
 		mParaFile = QFileDialog::getOpenFileName(NULL, QStringLiteral("参数列表"), gExePath + "/cfg/", "*.csv");	
+		if (mParaFile.isEmpty())
+		{
+			return;
+		}
+		
 		ui.labelPara->setText(mParaFile.section('/', -1, -1));
 		loadPara();
 	});
@@ -82,6 +89,42 @@ QDcAcOpencv::QDcAcOpencv(QWidget *parent)
 		pWidget->show();
 	});
 
+
+	//
+	connect(ui.pushButtonNew, &QPushButton::clicked, [this]() {
+
+		if (ui.lineEditFilename->text() == "")
+		{
+			QMessageBox::information(this,"","Please input name.");
+			return;
+		}
+
+		mParaFile = gExePath + "/cfg/" + ui.lineEditFilename->text() + ".csv";
+
+		mCurParaCsv = std::shared_ptr<FileIo::CsvFile>(new FileIo::CsvFile(mParaFile));
+	
+		
+		QStringList headers;
+		headers << QStringLiteral("结果") << QStringLiteral("序号") << QStringLiteral("作业步骤") << QStringLiteral("测试要点") 
+			<< "*" << "*" << "*" << "*";
+		mCurParaCsv->append(headers);
+
+		QStringList oneLine;
+		oneLine << "#1.0" << "" << "" << "" << "" << "" << "" << "";
+		mCurParaCsv->append(oneLine);
+
+		loadPara();
+	});
+
+	connect(ui.pushButtonAddline, &QPushButton::clicked, [this]() {
+
+		QStringList oneLine;
+		oneLine << "" << "" << "" << "" << "" << "" << "" << "";
+		mCurParaCsv->append(oneLine);
+
+		loadPara();
+	});
+
 	connect(ui.pushButtonParaSave, &QPushButton::clicked, [this]() { 
 				
 		mCurParaCsv->clear();
@@ -97,8 +140,17 @@ QDcAcOpencv::QDcAcOpencv(QWidget *parent)
 				tList.append(mpCurTableWidgetPara->item(i, 0)->text());
 			}
 
-			for (size_t j = 1; j < mpCurTableWidgetPara->columnCount(); j++)
+			if (mpCurTableWidgetPara->cellWidget(i, 1) != NULL)
 			{
+				auto cellWidget = (mpCurTableWidgetPara->cellWidget(i, 1));
+				QComboBox *combox = (QComboBox*)cellWidget;
+				tList.append(combox->currentText());
+			}
+			else
+				tList.append(mpCurTableWidgetPara->item(i, 1)->text());
+			
+			for (size_t j = 2; j < mpCurTableWidgetPara->columnCount(); j++)
+			{	
 				tList.append(mpCurTableWidgetPara->item(i, j)->text());
 			}
 
@@ -125,6 +177,7 @@ void QDcAcOpencv::loadPara()
 	ui.stackedWidgetPara->setCurrentIndex(0);
 	
 	mCurParaCsv->get(gParaVector);
+	mpCurTableWidgetPara->clear();
 	mpCurTableWidgetPara->setColumnCount(gParaVector[0].size());
 	mpCurTableWidgetPara->setRowCount(gParaVector.size());
 
@@ -144,7 +197,55 @@ void QDcAcOpencv::loadPara()
 		
 		mpCurTableWidgetPara->setItem(i, 0, check);
 
-		for (size_t j = 1; j < gParaVector[0].size(); j++){
+		//
+		if (gParaVector[i][0].right(2) == ".0")
+		{
+			QComboBox *comboBox = new QComboBox();
+			QStringList combolist;
+			combolist << QStringLiteral("空载测试 & No load test")
+				<< QStringLiteral("保护电路测试	& Protection circuit test")
+				<< QStringLiteral("逆变器功率与显示测试 & Inverter power and display test")
+				<< QStringLiteral("满载输入电压测试	& Input voltage test @full load")
+				<< QStringLiteral("满载输出功率测试	& Output power test@full load")
+				<< QStringLiteral("逆变器IN2省电模式测试	& IN2 saving mode test of inverters")
+				<< QStringLiteral("轻载回复测试	& Light  load recovery test")
+				<< QStringLiteral("过载测试	& Overload test")
+				<< QStringLiteral("短路测试	& Short circuit test")
+				<< QStringLiteral("灯炮测试	& Bulb test")
+				<< QStringLiteral("马达测试	& Motor test")
+				<< QStringLiteral("市电转换测试	& Grid / shore power conversion test")
+				<< QStringLiteral("ABS电压测试	& ABS voltage test")
+				<< QStringLiteral("充电器限流测试	& Current limiting test of charger")
+				<< QStringLiteral("充电器效率及显示测试	& Charger efficiency and display test")
+				<< QStringLiteral("USB测试	& USB module functional test")
+				<< QStringLiteral("出厂默认设置	& Factory default settings")
+				<< QStringLiteral("GFCI测试		& GFCI test")
+				<< QStringLiteral("接地测试		& Grounding test")
+				<< QStringLiteral("显示电流验证	& Display current verification")
+				<< QStringLiteral("开关设置	& Switch ")
+				<< QStringLiteral("电池种类选择	&  of battery types")
+				<< QStringLiteral("风扇测试	& Fan test")
+				<< QStringLiteral("浪涌测试	& Electrical surge test")
+				<< QStringLiteral("带满载市电逆变轮换	& Grid/shore power and inverter function conversion test @ full load")
+				<< QStringLiteral("INO模式测试 & INO mode test")
+				<< QStringLiteral("点火信号自动开机测试 & Automatic start-up test by ignition signal")
+				<< QStringLiteral("CUS模式测试 & CUS mode test")
+				<< QStringLiteral("AC INPUT和AC OUTPUT防接反测试 & AC input and AC output wiring connection error-proofing test")
+				<< QStringLiteral("SEE MANUAL的GP1,GP2测试 & GP1 and GP2 test according to manual's requirement")
+				<< QStringLiteral("逆变器IN2省电功能模式测试 & IN2 saving function mode test of Inverter")
+				<< QStringLiteral("遥控测试 & Remote control test");
+			
+			comboBox->addItems(combolist);
+			comboBox->setCurrentText(gParaVector[i][1]);
+			mpCurTableWidgetPara->setCellWidget(i, 1, comboBox);
+		}
+		else
+		{
+			mpCurTableWidgetPara->setItem(i, 1, new QTableWidgetItem(gParaVector[i][1]));
+		}
+		
+
+		for (size_t j = 2; j < gParaVector[0].size(); j++){
 			mpCurTableWidgetPara->setItem(i, j, new QTableWidgetItem(gParaVector[i][j]));
 		}
 	}
@@ -267,6 +368,7 @@ void QDcAcOpencv::gPointInit(){
 	gpWt230 = std::make_shared<InstrumentApi::Wt230>();
 	gpWt230->init(settings.value("GPIB/Wt230").toInt());
 
+	gpMycamera = std::make_shared<pvCameraSnapshoter>();
 	//
 	gpSignal->showMsgSignal(gpUi->textBrowser, "gPointInit()...");
 }
@@ -285,9 +387,12 @@ void _afterTest(bool result){
 	gpChroma62000H->setCurrent("0");
 	gpChroma62000H->confOutput(false);
 	//
-	gpDmc1380->SetOutput(8 + 10, 1);
-	gpDmc1380->SetOutput(8 + 16, 1);
 
+	for (size_t i = 1; i <= 16; i++)
+	{
+		gpDmc1380->SetOutput(8 + i, 1);
+	}
+	
 	gpSignal->colorSignal(gpUi->pushButtonStart, "QPushButton{background:}");
 
 	gpSignal->textSignal(gpUi->labelResult, result ? QStringLiteral("OK") : QStringLiteral("NG"));
@@ -319,7 +424,92 @@ inline void _runStateUpdate(RunState state){
 	runStateMutex.unlock();
 }
 
+/*
+空载测试	& No load test
+保护电路测试	& Protection circuit test
+逆变器功率与显示测试 & Inverter power and display test
+满载输入电压测试	&	Input voltage test @full load
+满载输出功率测试	&	Output power test@full load
+逆变器IN2省电模式测试	&	IN2 saving mode test of inverters
+轻载回复测试	&	Light  load recovery test
+过载测试	&	Overload test
+短路测试	&	Short circuit test
+灯炮测试	&	Bulb test
+马达测试	&	Motor test
+市电转换测试	&	Grid / shore power conversion test
+ABS电压测试	&	ABS voltage test
+充电器限流测试	&	Current limiting test of charger
+充电器效率及显示测试	&	Charger efficiency and display test
+USB测试	&	USB module functional test
+出厂默认设置	&	Factory default settings
+GFCI测试		&GFCI test
+接地测试		&Grounding test
+显示电流验证	&	Display current verification
+开关设置	&	Switch settings
+电池种类选择		&Selection of battery types
+风扇测试	&	Fan test
+浪涌测试	&	Electrical surge test
+带满载市电逆变轮换	&	Grid / shore power and inverter function conversion test @ full load
+INO模式测试	&	INO mode test
+点火信号自动开机测试	&	Automatic start-up test by ignition signal
+CUS模式测试	&	CUS mode test
+AC INPUT和AC OUTPUT防接反测试		&AC input and AC output wiring connection error-proofing test
+SEE MANUAL的GP1,GP2测试		&GP1 and GP2 test according to manual's requirement
+逆变器IN2省电功能模式测试		& IN2 saving function mode test of Inverter
+遥控测试	&	Remote control test
+*/
+
+bool _itemCheck(QStringList& tDataList, const int i)
+{
+	QString tDataline;
+
+	if (gTestVector[i][0].right(1) != "0")
+	{
+		Sleep(0);
+		return true;
+	}
+	
+	tDataList.append("");
+	tDataline += gTestVector[i][1].split("&")[1];
+	
+	tDataList.append(tDataline);
+	tDataList.append("Parameter Name      Low Limit           High Limit          Actual              P/F");
+
+	return true;
+}
+
+void _txtHeader(QStringList& tDataList)
+{
+	QString tString;
+
+	tDataList.append("");
+	tDataList.append("");
+	tDataList.append("Company Name  : ");
+	tString = (loginMode == 1) ? "Operator      : 001" : "Operator      : 002";
+	tDataList.append(tString);
+	tString = "Model         : " + gpUi->labelPara->text().left(gpUi->labelPara->text().length() - 4);
+	tDataList.append(tString);
+	tString = "Serial Number : " + gpUi->lineEditSn->text();
+	tDataList.append(tString);
+	//	tDataList.append("Retest        : No");
+	tString = "Date          : " + QDateTime::currentDateTime().date().toString("yyyy-MM-dd");
+	tDataList.push_back(tString);
+	tString = "Time          : " + QDateTime::currentDateTime().time().toString("hh:mm:ss");
+	tDataList.push_back(tString);
+	tDataList.append("Program       : OBC V1.0.0");
+	tDataList.append("------------------------------------------------------------");
+	tDataList.append("-----------Test by Universal Final Test Station-------------");
+	tDataList.append("------------------------------------------------------------");
+	tDataList.append("");
+	tString = "Test start Time : " + QDateTime::currentDateTime().time().toString("hh:mm:ss");
+	tDataList.append(tString);
+	tDataList.append("");
+
+}
+
 void Drose::MyThread2::run(){
+	
+
 	
 //	float ar = _getResistance();
 
@@ -350,13 +540,21 @@ void Drose::MyThread2::run(){
 	*/
 
 	QStringList tDataList;
-	tDataList.append("*" + gpUi->lineEditSn->text() + "*");
+	QString tDataline;
+	QString tString;
+	
+	//
+	_txtHeader(tDataList);
 
-	bool bError = false;	
+	//
+	bool bError = false;
+	QString msgError;
 	QStringList msgErrorList;
 
 	for (size_t i = 0; i < gTestVector.size(); i++){
 		
+		tDataline.clear();
+
 		if (gRunState == STOP){
 			gpSignal->textSignal(gpUi->textBrowser, "Pushbutton Stop Clicked."); 
 			goto FlagError;
@@ -374,15 +572,24 @@ void Drose::MyThread2::run(){
 		float tMeasure;
 		int repeat = 0;
 
+		//
+		if (false == _itemCheck(tDataList, i))
+		{
+			goto FlagError;
+		}
+
+		//
 		for (size_t j = 2; j < gTestVector[0].size(); j++)
 		{
+			tDataline.clear();
+
 			if (!gTestVector[i][j].contains("[") || !gTestVector[i][j].contains("]"))
 			{
 				continue;
 			}
-
-			QString msgError;
+		
 			measureItem = gpUi->tableWidgetTest->item(i, j + 1);
+		//	gpSignal->scrollSignal(gpUi->tableWidgetTest, measureItem);
 
 			gpChroma62000H->setCurrent("200");
 
@@ -411,7 +618,9 @@ void Drose::MyThread2::run(){
 			}
 		}
 
+		
 		QTableWidgetItem *checkItem = gpUi->tableWidgetTest->item(i, 0);
+		gpSignal->scrollSignal(gpUi->tableWidgetTest, checkItem);
 
 		if (bError){
 			gpSignal->colorSignal(checkItem, QColor(255, 0, 0), 0);
@@ -432,7 +641,8 @@ void Drose::MyThread2::run(){
 	
 	return;
 
-FlagError:	
+FlagError:
+//	tDataList.append(msgError);
 	DATA_LIST_ng();
 	_afterTest(false);
 

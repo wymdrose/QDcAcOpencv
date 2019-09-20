@@ -17,6 +17,7 @@
 #include <xmlwidget.h>
 #include <leadshine.h>
 #include <wensn.h>
+#include "mycamera.hpp"
 
 #include <QPushButton>
 #include <QGroupBox>
@@ -49,6 +50,7 @@ extern  std::vector<QStringList> gParaVector;
 extern  std::vector<QStringList> gTestVector;
 extern  std::vector<QStringList> gParaVector2[30];
 extern  std::vector<std::vector<QStringList>> gTestVector2;
+extern  std::shared_ptr<pvCameraSnapshoter>   gpMycamera;
 
 #define GLOBAL \
 Ui::QDcAcOpencvClass* gpUi;\
@@ -68,4 +70,5 @@ std::shared_ptr<InstrumentApi::Wt230>   gpWt230;\
 std::vector<QStringList> gParaVector;\
 std::vector<QStringList> gTestVector;\
 std::vector<QStringList> gParaVector2[30];\
-std::vector<std::vector<QStringList>> gTestVector2;
+std::vector<std::vector<QStringList>> gTestVector2;\
+std::shared_ptr<pvCameraSnapshoter>   gpMycamera;

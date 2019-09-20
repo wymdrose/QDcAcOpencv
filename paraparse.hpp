@@ -19,7 +19,7 @@ namespace ParaConfig
 	}
 
 	inline void _setAcSource(float volt){
-		gpDmc1380->RelMove(0, PULSE_PER_VOLT * volt);
+		gpDmc1380->AbsMove(0, PULSE_PER_VOLT * volt);
 	}
 
 	inline float _getAcSource(){
@@ -44,7 +44,31 @@ namespace ParaConfig
 	
 	inline float _getFanValue(){
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
-		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, settings.value("Channel/Fan").toString());
+
+		QVector<float> vValues;
+
+		for (size_t i = 0; i < 2; i++)
+		{
+			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, settings.value("Channel/Fan").toString());
+		
+			if (tValue > 0)
+			{
+				vValues.append(tValue);
+			}
+		}
+
+		float values(0.0);
+		for (size_t i = 0; i < vValues.length(); i++)
+		{
+			values += vValues[i];
+		}
+		
+		return values / vValues.length();
+	}
+
+	inline float _getGroundValue(){
+		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
+		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageAc, settings.value("Channel/Ground").toString());
 	}
 
 	inline void _pushKey(int keyNo, int delay){
@@ -232,6 +256,7 @@ namespace ParaConfig
 	{
 		if (cmdSet.type == SET)
 		{
+			msg += QStringLiteral("[设置DC负载:%0] ").arg(cmdSet.values.so);
 
 			if (cmdSet.values.so == "ON")
 			{
@@ -269,6 +294,7 @@ namespace ParaConfig
 	{
 		if (cmdSet.type == SET)
 		{
+			msg += QStringLiteral("[设置AC负载:%0] ").arg(cmdSet.values.so);
 
 			if (cmdSet.values.so == "ON")
 			{
@@ -316,46 +342,55 @@ namespace ParaConfig
 		return true;
 	}
 
-	bool _acsProcess(ValueS values)
+	bool _acsPrepare(CmdSet& cmdSet, QString& msg)
 	{
-		gpDmc1380->SetOutput(8 + 16, 1);
-
-		if (values.so == "OFF")
+		if (cmdSet.values.so == "OFF")
 		{
+			msg += QStringLiteral("[AC输入:OFF] ");
+
 			gpDmc1380->SetOutput(8 + 16, 1);
 			return true;
 		}
 
 		float curValue(0.0);
-		float setValue = values.so.toFloat();
-		
+		float setValue = cmdSet.values.so.toFloat();
+
 		for (size_t i = 0; i < 100; i++)
 		{
 			curValue = _getAcSource();
 
-			if (fabs(curValue - setValue) < 3)
+			if (curValue == 0)
+			{
+				continue;
+			}
+
+			if (fabs(curValue - setValue) < 1)
 			{
 				break;
 			}
 
 			while (!gpDmc1380->CheckDone(0))
 			{
-				Sleep(300);
+				Sleep(10);
 			}
-			
-			gpDmc1380->SetPos(0,0);
-			gpDmc1380->RelMove(0, 500 * (setValue - curValue) / fabs(curValue - setValue), 5000);	
+
+			gpDmc1380->SetPos(0, 0);
+			gpDmc1380->RelMove(0, 100 * (setValue - curValue), 3000);
 		}
 
-		values.is = QString::number(_getAcSource());
-		
-		if (_checkSet(values) == false)
+		curValue = _getAcSource();
+		cmdSet.values.is = QString::number(curValue);
+
+		if (curValue > cmdSet.values.so.toFloat() + 1)
 		{
 			return false;
 		}
 
-		gpDmc1380->SetOutput(8 + 16, 0);
-
+		if (cmdSet.cmd.right(2) == "on")
+		{
+			gpDmc1380->SetOutput(8 + 16, 0);
+		}
+		
 		return true;
 	}
 
@@ -367,10 +402,11 @@ namespace ParaConfig
 		{
 			if (cmdSet.type == SET)
 			{
+				msg += QStringLiteral("[设置DC电压:%0V] ").arg(cmdSet.values.so);
 				gpChroma62000H->setVoltage(cmdSet.values.so);
 				gpChroma62000H->confOutput(true);
 				Sleep(500);
-				gpChroma62000H->setVoltage(QString::number(2 * cmdSet.values.so.toFloat() - _getDcVolt()));
+			//	gpChroma62000H->setVoltage(QString::number(2 * cmdSet.values.so.toFloat() - _getDcVolt()));
 				 
 			}
 			else if (cmdSet.type == CHECK)
@@ -429,12 +465,21 @@ namespace ParaConfig
 				goto Error;
 			}
 		}
-		else if (cmdSet.cmd == "ACS")
+		else if (cmdSet.cmd.left(3) == "ACS")
 		{
-			if (_acsProcess(cmdSet.values) == false)
+			if (_acsPrepare(cmdSet, msg) == false)
 			{
+				msg += QStringLiteral("AC输入电压:") + cmdSet.values.is;
 				goto Error;
 			}
+			msg += QStringLiteral("AC输入电压:") + cmdSet.values.is;
+		}
+		else if (cmdSet.cmd.left(4) == "GOUT")
+		{
+			int io = (cmdSet.values.so == "ON") ? 0 : 1;
+			int index = cmdSet.cmd.right(cmdSet.cmd.length() - 4).toInt();
+		
+			gpDmc1380->SetOutput(8 + index, io);
 		}
 		else if (cmdSet.cmd.left(5) == "RELAY")
 		{
@@ -459,7 +504,7 @@ namespace ParaConfig
 		else if (cmdSet.cmd == "WAIT")
 		{
 			int delay = cmdSet.values.so.toInt();
-			if (delay > 3000)
+			if (delay >= 3000)
 			{
 				gpMytimer->countdownSignal(delay/1000);
 			}
@@ -498,7 +543,7 @@ namespace ParaConfig
 		{
 			float tDcc = _getDcCurr();
 			msg += QStringLiteral("DCC:%0 ").arg(tDcc);
-			cmdSet.values.is = tDcc;
+			cmdSet.values.is = QString::number(tDcc);
 
 			if (_checkSet(cmdSet.values) == false)
 			{
@@ -514,6 +559,21 @@ namespace ParaConfig
 			msg += QStringLiteral("DCC:%0 ").arg(tDcc);
 
 			cmdSet.values.is = QString::number(qAbs(tLed - tDcc), 'f', 0);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd == "ACV-ACS")
+		{
+			float tACV = _getAcVolt();
+			float tACS = _getAcSource();
+
+			msg += QStringLiteral("AC输出:%0 ").arg(tACV);
+			msg += QStringLiteral("AC输入:%0 ").arg(tACS);
+
+			cmdSet.values.is = QString::number(qAbs(tACV - tACS), 'f', 0);
 
 			if (_checkSet(cmdSet.values) == false)
 			{
@@ -538,6 +598,19 @@ namespace ParaConfig
 				goto Error;
 			}
 		}
+		else if (cmdSet.cmd == "VOICE")
+		{
+			int tVoice = gpWst60m485->getVoices();
+
+			msg += QStringLiteral("蜂鸣器:%0 ").arg(tVoice);
+			cmdSet.values.is = QString("%1").arg(tVoice);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+
+		}
 		else if (cmdSet.cmd == "LIGHT")
 		{
 			if (_lightProcess(cmdSet.values, msg) == false)
@@ -556,7 +629,17 @@ namespace ParaConfig
 				goto Error;
 			}
 		}
+		else if (cmdSet.cmd == "GROUND")
+		{
+			float tValue = _getGroundValue();
+			msg += QStringLiteral("地线:%0 ").arg(tValue);
+			cmdSet.values.is = QString("%1").arg(tValue);
 
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
 		return true;
 
 	Error:
@@ -645,14 +728,73 @@ namespace ParaConfig
 
 			cmdLoad(tCmdSet, tList[i]);
 
-			//			
+			//	
+			QString dataline;
+
 			if (_cmdParse(tCmdSet, msg) == false)
 			{
-				dataList.append(tCmdSet.values.is);
+				if (tCmdSet.type == CHECK)
+				{
+					dataline += tCmdSet.cmd;
+					for (size_t i = 0; i < 20 - tCmdSet.cmd.length(); i++)
+					{
+						dataline += " ";
+					}
+					
+					dataline += tCmdSet.values.tu;
+					for (size_t i = 0; i < 20 - tCmdSet.values.tu.length(); i++)
+					{
+						dataline += " ";
+					}
+
+					dataline += tCmdSet.values.to;
+					for (size_t i = 0; i < 20 - tCmdSet.values.to.length(); i++)
+					{
+						dataline += " ";
+					}
+
+					dataline += tCmdSet.values.is;
+					for (size_t i = 0; i < 20 - tCmdSet.values.is.length(); i++)
+					{
+						dataline += " ";
+					}
+
+					dataline += "*FAIL*";
+					dataList.append(dataline);
+				}
+				
 				return false;
 			}
 
-			dataList.append(tCmdSet.values.is);
+			if (tCmdSet.type == CHECK)
+			{
+				dataline += tCmdSet.cmd;
+				for (size_t i = 0; i < 20 - tCmdSet.cmd.length(); i++)
+				{
+					dataline += " ";
+				}
+
+				dataline += tCmdSet.values.tu;
+				for (size_t i = 0; i < 20 - tCmdSet.values.tu.length(); i++)
+				{
+					dataline += " ";
+				}
+
+				dataline += tCmdSet.values.to;
+				for (size_t i = 0; i < 20 - tCmdSet.values.to.length(); i++)
+				{
+					dataline += " ";
+				}
+
+				dataline += tCmdSet.values.is;
+				for (size_t i = 0; i < 20 - tCmdSet.values.is.length(); i++)
+				{
+					dataline += " ";
+				}
+
+				dataline += "PASS";
+				dataList.append(dataline);
+			}
 
 			gpSignal->textSignal(measureItem, msg);
 			gpSignal->colorSignal(measureItem, QColor(0, 255, 0), 1);

@@ -11,7 +11,7 @@ const int RESULT = 0;
 const int WT230_CH1 = 1;
 const int WT230_CH3 = 3;
 const float RESISTANCE = 10000;
-const float PULSE_PER_VOLT = 346.55;
+const float PULSE_PER_VOLT = 181.81;
 
 struct ValueS
 {
@@ -90,14 +90,16 @@ struct CmdSet
 	tDataList.append(QString("%1").arg(tMeasure));
 
 #define DATA_LIST_ok() \
-	tDataList.push_back(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));\
-	tDataList.push_back("ok");\
+	tDataList.push_back("");\
+	tDataList.push_back("Test End:" + QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));\
+	tDataList.push_back("Result: ok");\
 	tCsv.append(tDataList);\
 	tTxt.append(tDataList);
 
 #define DATA_LIST_ng() \
-	tDataList.push_back(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));\
-	tDataList.push_back("ng");\
+	tDataList.push_back("");\
+	tDataList.push_back("Test End:" + QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));\
+	tDataList.push_back("Result: ng");\
 	tCsv.append(tDataList);\
 	tTxt.append(tDataList);
 
