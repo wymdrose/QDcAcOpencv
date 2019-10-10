@@ -16,6 +16,8 @@ extern int loginMode;
 
 QMutex runStateMutex;
 RunState gRunState = STOP;
+QMap<QString, QString> itemMap;
+
 using namespace FileIo;
 using namespace ParaConfig;
 
@@ -58,6 +60,9 @@ QDcAcOpencv::QDcAcOpencv(QWidget *parent)
 		
 		ui.labelPara->setText(mParaFile.section('/', -1, -1));
 		loadPara();
+
+		QSettings settings(gExePath + "/cfg/cfg.ini", QSettings::IniFormat);
+		settings.setValue("Para/paraFile", mParaFile.section('/', -1, -1));
 	});
 	//
 	connect(ui.actionMindVision_platform, &QAction::triggered, [this]() {
@@ -168,6 +173,11 @@ QDcAcOpencv::~QDcAcOpencv()
 	gpWt230->close();
 }
 
+void QComboBox::wheelEvent(QWheelEvent *e)
+{
+	
+}
+
 void QDcAcOpencv::loadPara()
 {
 	gpSignal->showMsgSignal(gpUi->textBrowser, "loadPara()...");
@@ -201,8 +211,10 @@ void QDcAcOpencv::loadPara()
 		if (gParaVector[i][0].right(2) == ".0")
 		{
 			QComboBox *comboBox = new QComboBox();
+			QStringList itemlist;
 			QStringList combolist;
-			combolist << QStringLiteral("¿ÕÔØ²âÊÔ & No load test")
+
+			itemlist << QStringLiteral("¿ÕÔØ²âÊÔ & No load test")
 				<< QStringLiteral("±£»¤µçÂ·²âÊÔ	& Protection circuit test")
 				<< QStringLiteral("Äæ±äÆ÷¹¦ÂÊÓëÏÔÊ¾²âÊÔ & Inverter power and display test")
 				<< QStringLiteral("ÂúÔØÊäÈëµçÑ¹²âÊÔ	& Input voltage test @full load")
@@ -235,8 +247,17 @@ void QDcAcOpencv::loadPara()
 				<< QStringLiteral("Äæ±äÆ÷IN2Ê¡µç¹¦ÄÜÄ£Ê½²âÊÔ & IN2 saving function mode test of Inverter")
 				<< QStringLiteral("Ò£¿Ø²âÊÔ & Remote control test");
 			
+
+			for (size_t j = 0; j < itemlist.size(); j++)
+			{
+				QStringList oneLine = itemlist[j].split("&");
+				combolist << oneLine[0];
+				itemMap[oneLine[0]] = oneLine[1];
+			}
+			
 			comboBox->addItems(combolist);
 			comboBox->setCurrentText(gParaVector[i][1]);
+			
 			mpCurTableWidgetPara->setCellWidget(i, 1, comboBox);
 		}
 		else
@@ -311,8 +332,6 @@ void QDcAcOpencv::loadPara()
 		gpUi->tableWidgetTest->resizeColumnToContents(i);
 	}
 	
-
-
 	/*
 	int lineNo(0);
 	for (size_t i = 0; i < gParaVector.size(); i++)
@@ -419,6 +438,18 @@ void _afterTest(bool result){
 }
 
 inline void _runStateUpdate(RunState state){
+	
+	gpChroma62000H->setVoltage("0");
+	gpChroma62000H->setCurrent("0");
+	gpChroma62000H->confOutput(false);
+	//
+
+	for (size_t i = 1; i <= 16; i++)
+	{
+		gpDmc1380->SetOutput(8 + i, 1);
+	}
+
+	//
 	runStateMutex.lock();
 	gRunState = state;
 	runStateMutex.unlock();
@@ -470,8 +501,8 @@ bool _itemCheck(QStringList& tDataList, const int i)
 	}
 	
 	tDataList.append("");
-	tDataline += gTestVector[i][1].split("&")[1];
-	
+//	tDataline += gTestVector[i][1].split("&")[1];
+	tDataline += itemMap[gTestVector[i][1]];
 	tDataList.append(tDataline);
 	tDataList.append("Parameter Name      Low Limit           High Limit          Actual              P/F");
 
@@ -510,7 +541,6 @@ void _txtHeader(QStringList& tDataList)
 void Drose::MyThread2::run(){
 	
 
-	
 //	float ar = _getResistance();
 
 	gpSignal->showMsgSignal(gpUi->textBrowser, "run start.");

@@ -20,6 +20,7 @@ public:
 public:
 	void beforeTest();
 
+	
 
 private:
 	QTableWidget* mpCurTableWidgetPara;
@@ -29,6 +30,7 @@ private slots:
 	void pushButtonStart();
 	void pushButtonStop();
 	void pushButtonPause();
+
 
 private:
 	QString mParaFile;

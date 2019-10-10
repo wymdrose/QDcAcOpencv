@@ -39,7 +39,10 @@ namespace ParaConfig
 
 	inline float _getDcCurr(){
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
-		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, settings.value("Channel/KsResistanceVolt").toString()) * RESISTANCE;
+		double tCurr(0.0);
+		tCurr = gpKs34970A_2A->getDcmVolt(settings.value("Channel/KsResistanceVolt").toString()) * RESISTANCE;
+		
+		return fabs(tCurr);
 	}
 	
 	inline float _getFanValue(){
@@ -68,7 +71,9 @@ namespace ParaConfig
 
 	inline float _getGroundValue(){
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
-		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageAc, settings.value("Channel/Ground").toString());
+		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->resistance, settings.value("Channel/Ground").toString());
+
+	//	return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageAc, settings.value("Channel/Ground").toString());
 	}
 
 	inline void _pushKey(int keyNo, int delay){
@@ -156,8 +161,76 @@ namespace ParaConfig
 		}
 	}
 
-	bool _lightProcess(ValueS set, QString& msg)
+	bool _lightProcess(CmdSet& set, QString& msg)
 	{
+		VideoCapture capture(0);
+		if (!capture.isOpened())
+		{
+			cout << "cannot open the camera.";
+			cin.get();
+			return -1;
+		}
+
+		Mat edges;
+
+		Mat frame;
+		capture >> frame;
+		if (frame.empty())
+		{
+			printf("--(!) No captured frame -- Break!");
+			return false;                
+		}
+		else
+		{
+			/*
+			cvtColor(frame, edges, CV_BGR2GRAY);
+			blur(edges, edges, Size(7, 7));
+			Canny(edges, edges, 0, 30, 3);
+			*/
+			imshow("读取被边缘后的视频", frame);
+		}
+
+		QString lightPath = gExePath + "/Light/light.jpg";
+		imwrite(lightPath.toStdString(), frame);
+
+
+
+		int hsvG[] = { 35, 77, 43, 255, 46, 255 };   //green
+		int hsvY[] = { 26, 34, 43, 255, 46, 255 };   //yellow
+		int hsvO[] = { 11, 25, 43, 255, 46, 255 };   //orange
+		int hsvR1[] = { 0, 10, 43, 255, 46, 255 };   //RED
+		int hsvR2[] = { 156, 180, 43, 255, 46, 255 };   //RED
+		
+	
+		if (set.values.so == "RED")
+		{
+			if (gpColor->checkColor(hsvR1, frame) || gpColor->checkColor(hsvR2, frame))
+			{
+				set.values.is = "RED";
+				return true;
+			}
+		}
+		else if (set.values.so == "GREEN")
+		{
+			if (gpColor->checkColor(hsvG, frame))
+			{
+				set.values.is = "GREEN";
+				return true;
+			}
+		}
+		else if (set.values.so == "ORANGE")
+		{
+			if (gpColor->checkColor(hsvO, frame) || gpColor->checkColor(hsvY, frame))
+			{
+				set.values.is = "ORANGE";
+				return true;
+			}
+		}
+		
+		
+		return false;
+		
+		/*
 		double resis[3];
 		for (size_t i = 0; i < 3; i++)
 		{
@@ -185,6 +258,7 @@ namespace ParaConfig
 		}
 
 		return false;
+		*/
 	}
 
 	bool _speProcess(ValueS set, QString& msg)
@@ -277,7 +351,9 @@ namespace ParaConfig
 		}
 		else if (cmdSet.type == CHECK)
 		{
-			gpWt230->getPower(WT230_CH3, cmdSet.values.is);
+
+		//	gpWt230->getPower(WT230_CH3, cmdSet.values.is);
+			cmdSet.values.is = QString::number(_getDcCurr());
 
 			msg += QStringLiteral("DC负载%0A ").arg(cmdSet.values.is);
 
@@ -288,6 +364,40 @@ namespace ParaConfig
 		}
 
 		return true;
+	}
+
+	bool __aclPrepare(CmdSet& cmdSet, QString& msg)
+	{
+		
+		float diff(0.0);
+
+		for (size_t i = 0; i < 3; i++)
+		{		
+			gpChroma63800->setPower(QString::number(cmdSet.values.so.toFloat() + diff * 0.8));
+			gpChroma63800->setInput("ON");
+			Sleep(3000);
+			gpWt230->getPower(WT230_CH3, cmdSet.values.is);
+		
+			cmdSet.values.is = QString::number(cmdSet.values.is.toFloat());
+
+			if (cmdSet.values.is.toFloat() < 1)
+			{
+				continue;
+			}
+
+			float diff = cmdSet.values.so.toFloat() - cmdSet.values.is.toFloat();
+
+			if (diff < 7)
+			{
+				return true;
+			}
+
+		}
+
+		msg += "Error: __aclPrepare()";
+
+		return false;
+
 	}
 
 	bool _aclProcess(CmdSet& cmdSet, QString& msg)
@@ -315,10 +425,12 @@ namespace ParaConfig
 				}
 				else
 				{
-					gpChroma63800->setPower(cmdSet.values.so);
+					if (false == __aclPrepare(cmdSet, msg))
+					{
+						return false;
+					}				
 				}
-				
-				gpChroma63800->setInput("ON");
+			
 			}
 		}
 		else if (cmdSet.type == CHECK)
@@ -330,6 +442,7 @@ namespace ParaConfig
 			else
 			{
 				gpWt230->getPower(WT230_CH3, cmdSet.values.is);
+				cmdSet.values.is = QString::number(cmdSet.values.is.toFloat());
 				msg += QStringLiteral("AC负载%0W ").arg(cmdSet.values.is);
 			}
 			
@@ -515,11 +628,13 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "LED")
 		{
-			auto tLed = _getLedString();
+			QString tLed;
+			
+			tLed = _getLedString();
  		
 			for (size_t i = 0; i < 3; i++)
 			{
-				if (tLed.isEmpty())
+				if (tLed.length() != cmdSet.values.so.length())
 				{
 					tLed = _getLedString();
 				}
@@ -529,14 +644,21 @@ namespace ParaConfig
 				}
 			}
 			
-
 			msg += QStringLiteral("LED:%0 ").arg(tLed);		
 
 			cmdSet.values.is = tLed;
 		
 			if (_checkSet(cmdSet.values) == false)
 			{
-				goto Error;
+
+				bool question = false;
+
+				gpSignal->showBlockSignal("LED?", cmdSet.values.so, question);
+
+				if (!question){
+					msg += cmdSet.values.so;
+					goto Error;
+				}
 			}			
 		}
 		else if (cmdSet.cmd == "DCC")
@@ -562,11 +684,27 @@ namespace ParaConfig
 
 			if (_checkSet(cmdSet.values) == false)
 			{
+				cmdSet.values.is = QString::number(tLed) + "-" + QString::number(tDcc);
 				goto Error;
 			}
+			cmdSet.values.is = QString::number(tLed) + "-" + QString::number(tDcc);
+
 		}
 		else if (cmdSet.cmd == "ACV-ACS")
 		{
+
+			QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
+			float tAcDiff = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageAc, settings.value("Channel/acDiff").toString());
+			msg += QStringLiteral("acDiff:%0 ").arg(tAcDiff);
+			
+			cmdSet.values.is = QString::number(tAcDiff, 'f', 0);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+
+			/*
 			float tACV = _getAcVolt();
 			float tACS = _getAcSource();
 
@@ -577,8 +715,12 @@ namespace ParaConfig
 
 			if (_checkSet(cmdSet.values) == false)
 			{
+				cmdSet.values.is = QString::number(tACV, 'f', 0) + "-" + QString::number(tACS, 'f', 0);
 				goto Error;
 			}
+
+			cmdSet.values.is = QString::number(tACV, 'f', 0) + "-" + QString::number(tACS, 'f', 0);
+			*/
 		}
 		else if (cmdSet.cmd == "SPE")
 		{
@@ -613,10 +755,14 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "LIGHT")
 		{
-			if (_lightProcess(cmdSet.values, msg) == false)
+			for (size_t i = 0; i < 3; i++)
 			{
-				goto Error;
+				if (_lightProcess(cmdSet, msg))
+				{
+					return true;
+				}
 			}
+			goto Error;
 		}
 		else if (cmdSet.cmd == "FAN")
 		{
@@ -710,6 +856,30 @@ namespace ParaConfig
 		}
 	}
 
+	inline void cmdConver(CmdSet& CmdSet, QString& dataline)
+	{
+		if (CmdSet.cmd == "DCV")
+		{
+			CmdSet.cmd = "Vdc_in";
+		}
+		else if (CmdSet.cmd == "ACV")
+		{
+			CmdSet.cmd = "Vac_out";
+		}
+		else if (CmdSet.cmd == "ACF")
+		{
+			CmdSet.cmd = "Frequency";
+		}
+		else if (CmdSet.cmd == "DCC")
+		{
+			CmdSet.cmd = "Idc_in";
+		}
+		else
+		{
+
+		}
+	}
+
 	bool _cellParse(QTableWidgetItem *measureItem, QString cell, QString& msg, QStringList& dataList)
 	{
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
@@ -735,7 +905,10 @@ namespace ParaConfig
 			{
 				if (tCmdSet.type == CHECK)
 				{
+					cmdConver(tCmdSet, dataline);
+
 					dataline += tCmdSet.cmd;
+
 					for (size_t i = 0; i < 20 - tCmdSet.cmd.length(); i++)
 					{
 						dataline += " ";
@@ -768,7 +941,10 @@ namespace ParaConfig
 
 			if (tCmdSet.type == CHECK)
 			{
+				cmdConver(tCmdSet, dataline);
+
 				dataline += tCmdSet.cmd;
+
 				for (size_t i = 0; i < 20 - tCmdSet.cmd.length(); i++)
 				{
 					dataline += " ";
