@@ -208,7 +208,11 @@ void QDcAcOpencv::loadPara()
 		mpCurTableWidgetPara->setItem(i, 0, check);
 
 		//
-		if (gParaVector[i][0].right(2) == ".0")
+	
+		if (gParaVector[i][0].right(2) == ".0" 
+			|| (gParaVector[i][0].right(gParaVector[i][0].length()-1).toInt() > 0 && gParaVector[i][0].contains("#"))
+			||  (gParaVector[i][0].toInt() > 0 && !gParaVector[i][0].contains("#"))
+			)
 		{
 			QComboBox *comboBox = new QComboBox();
 			QStringList itemlist;
@@ -297,8 +301,8 @@ void QDcAcOpencv::loadPara()
 	//
 	gpUi->tableWidgetTest->clear();
 	//
-	gpUi->tableWidgetTest->setRowCount(gTestVector.size());
-	gpUi->tableWidgetTest->setColumnCount(gTestVector[0].size() + 1);
+	gpUi->tableWidgetTest->setRowCount(gTestVector.size() + 1);
+	gpUi->tableWidgetTest->setColumnCount(gParaVector[0].size() + 1);
 	gpUi->progressBar->setRange(0, gTestVector.size());
 	gpUi->progressBar->setValue(0);
 	
@@ -319,14 +323,14 @@ void QDcAcOpencv::loadPara()
 
 	headers << QStringLiteral("结果") << QStringLiteral("序号") << QStringLiteral("作业步骤") << QStringLiteral("测试要点");
 
-	for (size_t i = 4; i < gTestVector[0].size() + 1; i++)
+	for (size_t i = 4; i < gParaVector[0].size() + 1; i++)
 	{
 		headers << "*";
 	}
 
 	gpUi->tableWidgetTest->setHorizontalHeaderLabels(headers);
 
-	for (size_t i = 0; i < gTestVector[0].size(); i++)
+	for (size_t i = 0; i < gParaVector[0].size(); i++)
 	{
 		gpUi->tableWidgetPara1->resizeColumnToContents(i);
 		gpUi->tableWidgetTest->resizeColumnToContents(i);
@@ -401,6 +405,8 @@ void _afterTest(bool result){
 		gpUi->tableWidgetTest->resizeColumnToContents(i);
 	}
 	
+	gpItechIt8800->setCurrent("0");
+	gpItechIt8800->setInput("OFF");
 
 	gpChroma62000H->setVoltage("0");
 	gpChroma62000H->setCurrent("0");
@@ -418,7 +424,7 @@ void _afterTest(bool result){
 	gpSignal->colorSignal(gpUi->labelResult, result ? "QLabel{background:lightgreen}" : "QLabel{background:red}");
 	if (result)
 	{
-		gpSignal->showDialogSignal("Result", QStringLiteral("OK"));
+		gpSignal->showDialogSignal("Result", "<font style='font-size:100px; background-color:white; color:green;'>PASS</font>");
 	}
 
 	gpSignal->textSignal(gpUi->textBrowser, result ? "Passed." :"Failed.");
@@ -494,7 +500,7 @@ bool _itemCheck(QStringList& tDataList, const int i)
 {
 	QString tDataline;
 
-	if (gTestVector[i][0].right(1) != "0")
+	if (gTestVector[i][0].right(1) != "0" && gTestVector[i][0].contains("."))
 	{
 		Sleep(0);
 		return true;

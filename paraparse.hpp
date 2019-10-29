@@ -39,9 +39,8 @@ namespace ParaConfig
 
 	inline float _getDcCurr(){
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
-		double tCurr(0.0);
+		float tCurr(0.0);
 		tCurr = gpKs34970A_2A->getDcmVolt(settings.value("Channel/KsResistanceVolt").toString()) * RESISTANCE;
-		
 		return fabs(tCurr);
 	}
 	
@@ -80,7 +79,7 @@ namespace ParaConfig
 		gpDmc1380->SetOutput(8 + keyNo, 0);
 		QThread::msleep(delay);
 		gpDmc1380->SetOutput(8 + keyNo, 1);
-		QThread::msleep(500);
+		QThread::msleep(100);
 	}
 
 	inline void _relay(int relayNo, QString on_off)
@@ -138,7 +137,7 @@ namespace ParaConfig
 	QString inline _getLedString(){
 		gpMindVision->snapshot(gExePath + "/Snapshot/tSnap");
 		gpMindVision->snapshot(gExePath + "/Snapshot/tSnap");
-		Sleep(300);
+	
 		/*
 		Mat roi;
 		MachineVision::roiSnap(gExePath + "/Snapshot/tSnap.BMP", roi);
@@ -659,7 +658,17 @@ namespace ParaConfig
 					msg += cmdSet.values.so;
 					goto Error;
 				}
-			}			
+			}
+	
+			if (cmdSet.values.is == "Ab5")
+			{
+				cmdSet.values.is = "AbS";
+			}
+
+			if (cmdSet.values.is == "F1")
+			{
+				cmdSet.values.is = "FI";
+			}
 		}
 		else if (cmdSet.cmd == "DCC")
 		{
@@ -742,14 +751,21 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "VOICE")
 		{
-			int tVoice = gpWst60m485->getVoices();
+			float tVoice = gpWst60m485->getVoiceMax() / 10.0;
 
 			msg += QStringLiteral("蜂鸣器:%0 ").arg(tVoice);
 			cmdSet.values.is = QString("%1").arg(tVoice);
 
 			if (_checkSet(cmdSet.values) == false)
 			{
-				goto Error;
+				bool question = false;
+				QString info = cmdSet.values.tu.isEmpty() ? QStringLiteral("声音小于设定值？") : QStringLiteral("声音大于设定值？");
+				gpSignal->showBlockSignal(QStringLiteral("蜂鸣器？"), info, question);
+
+				if (!question){
+					msg += cmdSet.values.so;
+					goto Error;
+				}
 			}
 
 		}
@@ -772,7 +788,14 @@ namespace ParaConfig
 
 			if (_checkSet(cmdSet.values) == false)
 			{
-				goto Error;
+				bool question = false;
+				QString info = cmdSet.values.tu.isEmpty() ? QStringLiteral("风速小于设定值？") : QStringLiteral("风速大于设定值？");
+				gpSignal->showBlockSignal("FAN?", info, question);
+
+				if (!question){
+					msg += cmdSet.values.so;
+					goto Error;
+				}
 			}
 		}
 		else if (cmdSet.cmd == "GROUND")
@@ -786,6 +809,25 @@ namespace ParaConfig
 				goto Error;
 			}
 		}
+		else if (cmdSet.cmd == "Efficiency")
+		{
+			QString tAcl;
+			gpWt230->getPower(WT230_CH3, tAcl);
+
+			float tDcv = _getDcVolt();
+			float tDcc = _getDcCurr();
+
+			float tEff = 100 * tAcl.toFloat() / (tDcv * tDcc);
+
+			msg += QStringLiteral("Efficiency:%0 ").arg(tEff);
+			cmdSet.values.is = QString("%1").arg(tEff);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
+
 		return true;
 
 	Error:
