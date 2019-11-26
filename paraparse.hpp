@@ -11,7 +11,7 @@ namespace ParaConfig
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
 		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, settings.value("Channel/KsChroma").toString());
 	}
-
+	
 	inline float _getAcVolt(){
 		gpWt230->tabChannel(WT230_CH3);
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
@@ -28,8 +28,13 @@ namespace ParaConfig
 	}
 
 	inline float _getAcFreq(){
+		/*
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
 		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->frequency, settings.value("Channel/Ks8600").toString());
+		*/
+		float value = gpWt230->getFreq();
+		value = gpWt230->getFreq();
+		return value;
 	}
 
 	inline float _getResistance(){
@@ -422,6 +427,11 @@ namespace ParaConfig
 				{
 				//	gpChroma63800->setCurrent(cmdSet.values.so);
 				}
+				else if (cmdSet.cmd.right(1) == "R")
+				{
+					gpChroma63800->setResistance(cmdSet.values.so);
+					gpChroma63800->setInput("ON");
+				}
 				else
 				{
 					if (false == __aclPrepare(cmdSet, msg))
@@ -435,6 +445,10 @@ namespace ParaConfig
 		else if (cmdSet.type == CHECK)
 		{
 			if (cmdSet.cmd.right(1) == "A")
+			{
+
+			}
+			else if (cmdSet.cmd.right(1) == "R")
 			{
 
 			}
@@ -467,7 +481,7 @@ namespace ParaConfig
 		float curValue(0.0);
 		float setValue = cmdSet.values.so.toFloat();
 
-		for (size_t i = 0; i < 100; i++)
+		for (size_t i = 0; i < 20; i++)
 		{
 			curValue = _getAcSource();
 
@@ -503,6 +517,66 @@ namespace ParaConfig
 			gpDmc1380->SetOutput(8 + 16, 0);
 		}
 		
+		return true;
+	}
+
+	bool _ledProcess(CmdSet& cmdSet, QString& msg)
+	{
+		QString tLed;
+
+		tLed = _getLedString();
+
+		for (size_t i = 0; i < 3; i++)
+		{
+			if (tLed.length() != cmdSet.values.so.length())
+			{
+				tLed = _getLedString();
+			}
+			else
+			{
+				break;
+			}
+		}
+		if (tLed.length() > 3)
+		{
+			tLed = tLed.left(3);
+		}
+		//
+		if (cmdSet.values.so.contains("."))
+		{
+			tLed.insert(2, ".");
+		}
+
+		if (tLed == "FL0")
+		{
+			tLed = "FLo";
+		}
+
+		msg += QStringLiteral("LED:%0 ").arg(tLed);
+		cmdSet.values.is = tLed;
+
+		if (_checkSet(cmdSet.values) == false)
+		{
+			bool question = false;
+
+			gpSignal->showBlockSignal("LED?", cmdSet.values.so, question);
+
+			if (!question){
+				msg += cmdSet.values.so;
+				return false;
+			}
+		}
+
+		if (cmdSet.values.is == "Ab5")
+		{
+			cmdSet.values.is = "AbS";
+		}
+
+		if (cmdSet.values.is == "F1")
+		{
+			cmdSet.values.is = "FI";
+		}
+
 		return true;
 	}
 
@@ -627,47 +701,9 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "LED")
 		{
-			QString tLed;
-			
-			tLed = _getLedString();
- 		
-			for (size_t i = 0; i < 3; i++)
+			if (false == _ledProcess(cmdSet, msg))
 			{
-				if (tLed.length() != cmdSet.values.so.length())
-				{
-					tLed = _getLedString();
-				}
-				else
-				{
-					break;
-				}
-			}
-			
-			msg += QStringLiteral("LED:%0 ").arg(tLed);		
-
-			cmdSet.values.is = tLed;
-		
-			if (_checkSet(cmdSet.values) == false)
-			{
-
-				bool question = false;
-
-				gpSignal->showBlockSignal("LED?", cmdSet.values.so, question);
-
-				if (!question){
-					msg += cmdSet.values.so;
-					goto Error;
-				}
-			}
-	
-			if (cmdSet.values.is == "Ab5")
-			{
-				cmdSet.values.is = "AbS";
-			}
-
-			if (cmdSet.values.is == "F1")
-			{
-				cmdSet.values.is = "FI";
+				goto Error;
 			}
 		}
 		else if (cmdSet.cmd == "DCC")
@@ -685,19 +721,19 @@ namespace ParaConfig
 		{
 			float tLed = _getLedValue();
 			float tDcc = _getDcCurr();
-
+		
 			msg += QStringLiteral("LED:%0 ").arg(tLed);
 			msg += QStringLiteral("DCC:%0 ").arg(tDcc);
 
-			cmdSet.values.is = QString::number(qAbs(tLed - tDcc), 'f', 0);
+			QString tDiff = QString::number(qAbs(tLed - tDcc), 'f', 0);
 
 			if (_checkSet(cmdSet.values) == false)
 			{
-				cmdSet.values.is = QString::number(tLed) + "-" + QString::number(tDcc);
+				cmdSet.values.is = QString("%1 - %2 = %3").arg(tLed).arg(tDcc).arg(tDiff);
 				goto Error;
 			}
-			cmdSet.values.is = QString::number(tLed) + "-" + QString::number(tDcc);
-
+		//	cmdSet.values.is = QString::number(tLed) + "-" + QString::number(tDcc);
+			cmdSet.values.is = QString("%1 - %2 = %3").arg(tLed).arg(tDcc).arg(tDiff);
 		}
 		else if (cmdSet.cmd == "ACV-ACS")
 		{
@@ -751,21 +787,29 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "VOICE")
 		{
-			float tVoice = gpWst60m485->getVoiceMax() / 10.0;
+			float tVoice(0);
+			for (size_t i = 0; i < 4; i++)
+			{
+				Sleep(1300);
+				tVoice = gpWst60m485->getVoice() / 10.0;
+				cmdSet.values.is = QString("%1").arg(tVoice);
+
+				if (_checkSet(cmdSet.values) == true)
+				{
+					msg += QStringLiteral("∑‰√˘∆˜:%0 ").arg(tVoice);
+					return true;
+				}
+			}
 
 			msg += QStringLiteral("∑‰√˘∆˜:%0 ").arg(tVoice);
-			cmdSet.values.is = QString("%1").arg(tVoice);
 
-			if (_checkSet(cmdSet.values) == false)
-			{
-				bool question = false;
-				QString info = cmdSet.values.tu.isEmpty() ? QStringLiteral("…˘“Ù–°”⁄…Ë∂®÷µ£ø") : QStringLiteral("…˘“Ù¥Û”⁄…Ë∂®÷µ£ø");
-				gpSignal->showBlockSignal(QStringLiteral("∑‰√˘∆˜£ø"), info, question);
+			bool question = false;
+			QString info = cmdSet.values.tu.isEmpty() ? QStringLiteral("∑‰√˘∆˜Õ£÷π£ø") : QStringLiteral("∑‰√˘∆˜œÏ£ø");
+			gpSignal->showBlockSignal(QStringLiteral("∑‰√˘∆˜£ø"), info, question);
 
-				if (!question){
-					msg += cmdSet.values.so;
-					goto Error;
-				}
+			if (!question){
+				msg += cmdSet.values.so;
+				goto Error;
 			}
 
 		}
@@ -823,9 +867,118 @@ namespace ParaConfig
 			cmdSet.values.is = QString("%1").arg(tEff);
 
 			if (_checkSet(cmdSet.values) == false)
+			{ 
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd == "CEfficiency")
+		{
+			float tDcv = _getDcVolt();
+			float tDcc = _getDcCurr();
+
+			QString tPower;
+			gpWt230->getPower(WT230_CH1, tPower);
+
+			float tCEff = 100 * tDcv * tDcc / tPower.toFloat();
+
+			msg += QStringLiteral("CEfficiency:%0 ").arg(tCEff);
+			cmdSet.values.is = QString("%1").arg(tCEff);
+
+			if (_checkSet(cmdSet.values) == false)
 			{
 				goto Error;
 			}
+		}
+		else if (cmdSet.cmd == "USBC")
+		{
+			float tCurr(0.0);
+			tCurr = gpKs34970A_2A->getDcmVolt("109") * RESISTANCE;
+
+			msg += QStringLiteral("USBC:%0 ").arg(fabs(tCurr));
+			cmdSet.values.is = QString("%1").arg(fabs(tCurr));
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd == "USB-1")
+		{
+			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, "111");
+			msg += QStringLiteral("USB-1:%0 ").arg(tValue);
+
+			cmdSet.values.is = QString::number(tValue, 'f', 0);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd == "USB-2")
+		{
+			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, "112");
+			msg += QStringLiteral("USB-2:%0 ").arg(tValue);
+
+			cmdSet.values.is = QString::number(tValue, 'f', 0);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+
+		}
+		else if (cmdSet.cmd == "USB-3")
+		{
+			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, "113");
+			msg += QStringLiteral("USB-3:%0 ").arg(tValue);
+
+			cmdSet.values.is = QString::number(tValue, 'f', 0);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd == "AuxiliaryDCV1")
+		{
+			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, "114");
+			msg += QStringLiteral("AuxiliaryDCV1:%0 ").arg(tValue);
+
+			cmdSet.values.is = QString::number(tValue, 'f', 0);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd == "AuxiliaryDCV2")
+		{
+			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, "115");
+			msg += QStringLiteral("AuxiliaryDCV2:%0 ").arg(tValue);
+
+			cmdSet.values.is = QString::number(tValue, 'f', 0);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd == "AuxiliaryACV1")
+		{
+			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageAc, "116");
+			msg += QStringLiteral("AuxiliaryACV1:%0 ").arg(tValue);
+
+			cmdSet.values.is = QString::number(tValue, 'f', 0);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
+		else
+		{
+			msg += QStringLiteral(" Œﬁ–ß√¸¡Ó :%0").arg(cmdSet.cmd);
+			return false;
 		}
 
 		return true;

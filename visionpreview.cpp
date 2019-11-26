@@ -14,7 +14,7 @@ VisionPreview::VisionPreview(QWidget *parent)
 	connect(timer, SIGNAL(timeout()), this, SLOT(update()));
 	timer->start(100);
 
-	gpChroma62000H->setVoltage("13.5");
+	gpChroma62000H->setVoltage("13.0");
 	gpChroma62000H->confOutput(true);
 
 	/*

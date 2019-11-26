@@ -566,7 +566,6 @@ void Drose::MyThread2::run(){
 	
 	TxtFile tTxt(logsPath + curDir + "/" + gpUi->lineEditSn->text() + ".txt");
 
-
 	/*
 	std::vector<QStringList> tLineAll;
 	tCsv.get(tLineAll);
@@ -627,7 +626,7 @@ void Drose::MyThread2::run(){
 			measureItem = gpUi->tableWidgetTest->item(i, j + 1);
 		//	gpSignal->scrollSignal(gpUi->tableWidgetTest, measureItem);
 
-			gpChroma62000H->setCurrent("200");
+			gpChroma62000H->setCurrent("370");
 
 			if (gTestVector[i][j].contains("&"))
 			{
