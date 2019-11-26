@@ -260,6 +260,7 @@ void QDcAcOpencv::loadPara()
 			}
 			
 			comboBox->addItems(combolist);
+			gParaVector[i][1].remove("\"");
 			comboBox->setCurrentText(gParaVector[i][1]);
 			
 			mpCurTableWidgetPara->setCellWidget(i, 1, comboBox);

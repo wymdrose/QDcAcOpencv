@@ -20,12 +20,13 @@ struct ValueS
 
 enum CmdType{
 
-	SET,CHECK,UP,DOWN
+	SET,CHECK,UP,DOWN,QUESTION
 };
 
 struct CmdSet
 {
 	QString cmd;
+	QString unit;
 	CmdType type;
 	ValueS values;
 };
