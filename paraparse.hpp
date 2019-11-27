@@ -594,7 +594,7 @@ namespace ParaConfig
 
 		if (cmdSet.cmd == "DCV")
 		{
-			cmdSet.unit = "(V)";
+			cmdSet.unit = "V";
 			if (cmdSet.type == SET)
 			{
 				msg += QStringLiteral("[设置DC电压:%0V] ").arg(cmdSet.values.so);
@@ -628,7 +628,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd.left(3) == "ACL")
 		{
-			cmdSet.unit = "(W)";
+			cmdSet.unit = "W";
 			if (_aclProcess(cmdSet, msg) == false)
 			{
 				goto Error;
@@ -636,7 +636,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "DCL")
 		{
-			cmdSet.unit = "(A)";
+			cmdSet.unit = "A";
 			if (_dclProcess(cmdSet, msg) == false)
 			{
 				goto Error;
@@ -644,7 +644,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "ACV")
 		{
-			cmdSet.unit = "(V)";
+			cmdSet.unit = "V";
 			cmdSet.values.is = QString::number(_getAcVolt());;
 			msg += QStringLiteral("AC电压%0V ").arg(cmdSet.values.is);
 
@@ -655,7 +655,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "ACF")
 		{
-			cmdSet.unit = "(Hz)";
+			cmdSet.unit = "Hz";
 			cmdSet.values.is = QString::number(_getAcFreq());
 			msg += QStringLiteral("AC频率%0 ").arg(cmdSet.values.is);
 
@@ -666,7 +666,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd.left(3) == "ACS")
 		{
-			cmdSet.unit = "(V)";
+			cmdSet.unit = "V";
 			if (_acsPrepare(cmdSet, msg) == false)
 			{
 				msg += QStringLiteral("AC输入电压:") + cmdSet.values.is;
@@ -715,7 +715,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "LED")
 		{
-			cmdSet.unit = "(-)";
+			cmdSet.unit = "-";
 			if (false == _ledProcess(cmdSet, msg))
 			{
 				goto Error;
@@ -723,7 +723,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "DCC")
 		{
-			cmdSet.unit = "(A)";
+			cmdSet.unit = "A";
 			float tDcc = _getDcCurr();
 			msg += QStringLiteral("DCC:%0 ").arg(tDcc);
 			cmdSet.values.is = QString::number(tDcc);
@@ -735,15 +735,16 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "LED-DCC")
 		{
-			cmdSet.unit = "(A)";
+			cmdSet.unit = "A";
 			float tLed = _getLedValue();
 			float tDcc = _getDcCurr();
 		
 			msg += QStringLiteral("LED:%0 ").arg(tLed);
 			msg += QStringLiteral("DCC:%0 ").arg(tDcc);
 
-			QString tDiff = QString::number(qAbs(tLed - tDcc), 'f', 0);
+			QString tDiff = QString::number(qAbs(tLed - tDcc), 'f', 3);
 
+			cmdSet.values.is = tDiff;
 			if (_checkSet(cmdSet.values) == false)
 			{
 				cmdSet.values.is = QString("%1-%2=%3").arg(tLed).arg(tDcc).arg(tDiff);
@@ -754,7 +755,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "ACV-ACS")
 		{
-			cmdSet.unit = "(V)";
+			cmdSet.unit = "V";
 			QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
 			float tAcDiff = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageAc, settings.value("Channel/acDiff").toString());
 			msg += QStringLiteral("acDiff:%0 ").arg(tAcDiff);
@@ -804,7 +805,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "VOICE")
 		{
-			cmdSet.unit = "(dB)";
+			cmdSet.unit = "dB";
 			float tVoice(0);
 			for (size_t i = 0; i < 4; i++)
 			{
@@ -844,7 +845,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "FAN")
 		{
-			cmdSet.unit = "(m/s)";
+			cmdSet.unit = "m/s";
 			float tFan = _getFanValue();
 			msg += QStringLiteral("FAN:%0 ").arg(tFan);
 			cmdSet.values.is = QString("%1").arg(tFan);
@@ -863,7 +864,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "GROUND")
 		{
-			cmdSet.unit = "(ohm)";
+			cmdSet.unit = "ohm";
 			float tValue = _getGroundValue(1);
 			msg += QStringLiteral("地线:%0 ").arg(tValue);
 			cmdSet.values.is = QString("%1").arg(tValue);
@@ -875,7 +876,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "GROUND2" || cmdSet.cmd == "ground2" || cmdSet.cmd == "Ground2")
 		{
-			cmdSet.unit = "(ohm)";
+			cmdSet.unit = "ohm";
 			float tValue = _getGroundValue(2);
 			msg += QStringLiteral("地线:%0 ").arg(tValue);
 			cmdSet.values.is = QString("%1").arg(tValue);
@@ -887,7 +888,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "Efficiency")
 		{
-			cmdSet.unit = "(%)";
+			cmdSet.unit = "%";
 			QString tAcl;
 			gpWt230->getPower(WT230_CH3, tAcl);
 
@@ -906,7 +907,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "CEfficiency")
 		{
-			cmdSet.unit = "(%)";
+			cmdSet.unit = "%";
 			float tDcv = _getDcVolt();
 			float tDcc = _getDcCurr();
 
@@ -925,7 +926,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "USBC")
 		{
-			cmdSet.unit = "(A)";
+			cmdSet.unit = "A";
 			float tCurr(0.0);
 			tCurr = gpKs34970A_2A->getDcmVolt("109") * RESISTANCE;
 
@@ -939,7 +940,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "USB-1")
 		{
-			cmdSet.unit = "(V)";
+			cmdSet.unit = "V";
 			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, "111");
 			msg += QStringLiteral("USB-1:%0 ").arg(tValue);
 
@@ -952,7 +953,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "USB-2")
 		{
-			cmdSet.unit = "(V)";
+			cmdSet.unit = "V";
 			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, "112");
 			msg += QStringLiteral("USB-2:%0 ").arg(tValue);
 
@@ -966,7 +967,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "USB-3")
 		{
-			cmdSet.unit = "(V)";
+			cmdSet.unit = "V";
 			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, "113");
 			msg += QStringLiteral("USB-3:%0 ").arg(tValue);
 
@@ -979,7 +980,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "AuxiliaryDCV1")
 		{
-			cmdSet.unit = "(V)";
+			cmdSet.unit = "V";
 			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, "114");
 			msg += QStringLiteral("AuxiliaryDCV1:%0 ").arg(tValue);
 
@@ -992,7 +993,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "AuxiliaryDCV2")
 		{
-			cmdSet.unit = "(V)";
+			cmdSet.unit = "V";
 			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, "115");
 			msg += QStringLiteral("AuxiliaryDCV2:%0 ").arg(tValue);
 
@@ -1005,7 +1006,7 @@ namespace ParaConfig
 		}
 		else if (cmdSet.cmd == "AuxiliaryACV1")
 		{
-			cmdSet.unit = "(V)";
+			cmdSet.unit = "V";
 			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageAc, "116");
 			msg += QStringLiteral("AuxiliaryACV1:%0 ").arg(tValue);
 
@@ -1149,26 +1150,32 @@ namespace ParaConfig
 
 					dataline += tCmdSet.cmd;
 
-					for (size_t i = 0; i < 20 - tCmdSet.cmd.length(); i++)
+					for (size_t i = 0; i < 15 - tCmdSet.cmd.length(); i++)
 					{
 						dataline += " ";
 					}
 					
 					dataline += tCmdSet.values.tu;
-					for (size_t i = 0; i < 20 - tCmdSet.values.tu.length(); i++)
+					for (size_t i = 0; i < 10 - tCmdSet.values.tu.length(); i++)
 					{
 						dataline += " ";
 					}
 
 					dataline += tCmdSet.values.to;
-					for (size_t i = 0; i < 20 - tCmdSet.values.to.length(); i++)
+					for (size_t i = 0; i < 11 - tCmdSet.values.to.length(); i++)
 					{
 						dataline += " ";
 					}
 
-					tCmdSet.values.is = tCmdSet.values.is + tCmdSet.unit;
 					dataline += tCmdSet.values.is;
-					for (size_t i = 0; i < 20 - tCmdSet.values.is.length(); i++)
+					for (size_t i = 0; i < 17 - tCmdSet.values.is.length(); i++)
+					{
+						dataline += " ";
+					}
+
+					//
+					dataline += tCmdSet.unit;
+					for (size_t i = 0; i < 7 - tCmdSet.unit.length(); i++)
 					{
 						dataline += " ";
 					}
@@ -1186,25 +1193,31 @@ namespace ParaConfig
 
 				dataline += tCmdSet.cmd;
 
-				for (size_t i = 0; i < 20 - tCmdSet.cmd.length(); i++)
+				for (size_t i = 0; i < 15 - tCmdSet.cmd.length(); i++)
 				{
 					dataline += " ";
 				}
 
 				dataline += tCmdSet.values.tu;
-				for (size_t i = 0; i < 20 - tCmdSet.values.tu.length(); i++)
+				for (size_t i = 0; i < 10 - tCmdSet.values.tu.length(); i++)
 				{
 					dataline += " ";
 				}
 
 				dataline += tCmdSet.values.to;
-				for (size_t i = 0; i < 20 - tCmdSet.values.to.length(); i++)
+				for (size_t i = 0; i < 11 - tCmdSet.values.to.length(); i++)
 				{
 					dataline += " ";
 				}
 
 				dataline += tCmdSet.values.is;
-				for (size_t i = 0; i < 20 - tCmdSet.values.is.length(); i++)
+				for (size_t i = 0; i < 17 - tCmdSet.values.is.length(); i++)
+				{
+					dataline += " ";
+				}
+
+				dataline += tCmdSet.unit;
+				for (size_t i = 0; i < 7 - tCmdSet.unit.length(); i++)
 				{
 					dataline += " ";
 				}

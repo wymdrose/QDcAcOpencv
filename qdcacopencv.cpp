@@ -511,7 +511,7 @@ bool _itemCheck(QStringList& tDataList, const int i)
 //	tDataline += gTestVector[i][1].split("&")[1];
 	tDataline += itemMap[gTestVector[i][1]];
 	tDataList.append(tDataline);
-	tDataList.append("Parameter Name      Low Limit           High Limit          Actual              P/F");
+	tDataList.append("ParameterName  LowLimit  HighLimit  Actual           Units  P/F");
 
 	return true;
 }
