@@ -592,7 +592,7 @@ namespace ParaConfig
 	{
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
 
-		if (cmdSet.cmd == "DCV")
+		if (cmdSet.cmd.toUpper() == "DCV")
 		{
 			cmdSet.unit = "V";
 			if (cmdSet.type == SET)
@@ -874,7 +874,7 @@ namespace ParaConfig
 				goto Error;
 			}
 		}
-		else if (cmdSet.cmd == "GROUND2" || cmdSet.cmd == "ground2" || cmdSet.cmd == "Ground2")
+		else if (cmdSet.cmd.toUpper() == "GROUND2")
 		{
 			cmdSet.unit = "ohm";
 			float tValue = _getGroundValue(2);
