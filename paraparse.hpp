@@ -552,7 +552,8 @@ namespace ParaConfig
 		//
 		if (cmdSet.values.so.contains("."))
 		{
-			tLed.insert(2, ".");
+			auto index = cmdSet.values.so.indexOf(".");
+			tLed.insert(index, ".");
 		}
 
 		if (tLed == "FL0")
@@ -606,14 +607,23 @@ namespace ParaConfig
 			}
 			else if (cmdSet.type == CHECK)
 			{
-				cmdSet.values.is = QString::number(_getDcVolt(), 'f', 2);
+				float tValue(0);
+				for (size_t i = 0; i < 4; i++)
+				{
+					Sleep(200);
+
+					cmdSet.values.is = QString::number(_getDcVolt(), 'f', 2);
+
+					if (_checkSet(cmdSet.values) == true)
+					{
+						msg += QStringLiteral("DCµçÑ¹%0V ").arg(cmdSet.values.is);
+						return true;
+					}
+				}
 
 				msg += QStringLiteral("DCµçÑ¹%0V ").arg(cmdSet.values.is);
+				goto Error;
 
-				if (_checkSet(cmdSet.values) == false)
-				{
-					goto Error;
-				}
 			}
 			else if (cmdSet.type == UP)
 			{
@@ -658,6 +668,20 @@ namespace ParaConfig
 			cmdSet.unit = "Hz";
 			cmdSet.values.is = QString::number(_getAcFreq());
 			msg += QStringLiteral("ACÆµÂÊ%0 ").arg(cmdSet.values.is);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
+		else if (cmdSet.cmd.toUpper() == "FACS")
+		{
+			cmdSet.unit = "Hz";
+			QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
+			float value = gpKs34970A_2A->getMeasure(gpKs34970A_2A->frequency, settings.value("Channel/FACS").toString());
+
+			cmdSet.values.is = QString::number(value);
+			msg += QStringLiteral("FACS %0 ").arg(cmdSet.values.is);
 
 			if (_checkSet(cmdSet.values) == false)
 			{
@@ -732,6 +756,25 @@ namespace ParaConfig
 			{
 				goto Error;
 			}
+		}
+		else if (cmdSet.cmd == "LED-DCV" || cmdSet.cmd == "DCV-LED")
+		{
+			cmdSet.unit = "V";
+			float tLed = _getLedValue(true);
+			float tdcV = _getDcVolt();
+
+			msg += QStringLiteral("LED:%0 ").arg(tLed);
+			msg += QStringLiteral("DCV:%0 ").arg(tdcV);
+
+			QString tDiff = QString::number(qAbs(tLed - tdcV), 'f', 3);
+
+			cmdSet.values.is = tDiff;
+			if (_checkSet(cmdSet.values) == false)
+			{
+				cmdSet.values.is = QString("%1-%2=%3").arg(tLed).arg(tdcV).arg(tDiff);
+				goto Error;
+			}
+			cmdSet.values.is = QString("%1-%2=%3").arg(tLed).arg(tdcV).arg(tDiff);
 		}
 		else if (cmdSet.cmd == "LED-DCC")
 		{
