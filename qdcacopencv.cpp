@@ -166,6 +166,28 @@ QDcAcOpencv::QDcAcOpencv(QWidget *parent)
 	});
 
 	//
+	connect(ui.checkBoxCheckAll, &QCheckBox::clicked, [this]() {
+
+		if (ui.checkBoxCheckAll->checkState() == Qt::Checked)
+		{
+			for (size_t i = 0; i < mpCurTableWidgetPara->rowCount(); i++)
+			{
+				if (mpCurTableWidgetPara->item(i, 0)->text().isEmpty()){continue;}
+				mpCurTableWidgetPara->item(i, 0)->setCheckState(Qt::Checked);
+			}
+		}
+		else
+		{
+			for (size_t i = 0; i < mpCurTableWidgetPara->rowCount(); i++)
+			{
+
+				if (mpCurTableWidgetPara->item(i, 0)->text().isEmpty()){continue;}
+
+				mpCurTableWidgetPara->item(i, 0)->setCheckState(Qt::Unchecked);
+			}
+		}	
+	});
+	
 }
 
 QDcAcOpencv::~QDcAcOpencv()
@@ -397,9 +419,21 @@ void QDcAcOpencv::gPointInit(){
 	gpSignal->showMsgSignal(gpUi->textBrowser, "gPointInit()...");
 }
 
-void _afterTest(bool result){
+void _afterTest(QStringList& tDataList, CsvFile& tCsv, TxtFile& tTxt, bool result){
 	
 	
+	if (ledEflag)
+	{
+		result = false;
+	}
+	//
+	tDataList.push_back("");
+	tDataList.push_back("Test End:" + QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+	result ? tDataList.push_back("Result: ok") : tDataList.push_back("Result: ng");
+	tCsv.append(tDataList);
+	tTxt.append(tDataList);
+
+	//
 	for (size_t i = 0; i < gTestVector[0].size(); i++)
 	{
 		gpUi->tableWidgetPara1->resizeColumnToContents(i);
@@ -421,21 +455,20 @@ void _afterTest(bool result){
 	
 	gpSignal->colorSignal(gpUi->pushButtonStart, "QPushButton{background:}");
 
+	//
 	gpSignal->textSignal(gpUi->labelResult, result ? QStringLiteral("OK") : QStringLiteral("NG"));
 	gpSignal->colorSignal(gpUi->labelResult, result ? "QLabel{background:lightgreen}" : "QLabel{background:red}");
 	if (result)
 	{
 		gpSignal->showDialogSignal("Result", "<font style='font-size:100px; background-color:white; color:green;'>PASS</font>");
 	}
+	else
+	{
+		gpSignal->showDialogSignal("Result", "<font style='font-size:100px; background-color:white; color:red;'>NG</font>");
+	}
 
 	gpSignal->textSignal(gpUi->textBrowser, result ? "Passed." :"Failed.");
 		
-	if (result){
-	
-	}
-	else{
-		
-	}
 	//
 	gpChroma63800->setInput("OFF");
 
@@ -671,16 +704,15 @@ void Drose::MyThread2::run(){
 		gpSignal->textSignal(gpUi->textBrowser, "");
 	}
 
-	DATA_LIST_ok();
-
-	_afterTest(true);
+//	DATA_LIST_ok();
+	_afterTest(tDataList, tCsv, tTxt, true);
 	
 	return;
 
 FlagError:
 //	tDataList.append(msgError);
-	DATA_LIST_ng();
-	_afterTest(false);
+//	DATA_LIST_ng();
+	_afterTest(tDataList, tCsv, tTxt, false);
 
 				
 	/*
@@ -734,6 +766,8 @@ void QDcAcOpencv::pushButtonStop(){
 
 void QDcAcOpencv::beforeTest(){
 	
+	ledEflag = false;
+
 	ui.lineEditSn->clear();
 	ui.textBrowser->clear();
 	ui.pushButtonStart->setEnabled(false);

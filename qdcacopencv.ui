@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>OBC自动测量系统  V4.0.2</string>
+   <string>OBC自动测量系统  V4.0.8</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout_3">
@@ -114,6 +114,13 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_7">
               <item>
+               <widget class="QCheckBox" name="checkBoxCheckAll">
+                <property name="text">
+                 <string>全选</string>
+                </property>
+               </widget>
+              </item>
+              <item>
                <spacer name="horizontalSpacer">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
@@ -189,8 +196,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>109</width>
-               <height>109</height>
+               <width>970</width>
+               <height>524</height>
               </rect>
              </property>
              <attribute name="label">

@@ -7,6 +7,7 @@
 namespace ParaConfig
 {
 	inline float _getDcVolt(){
+
 		gpWt230->tabChannel(WT230_CH1);
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
 		return gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageDc, settings.value("Channel/KsChroma").toString());
@@ -399,7 +400,7 @@ namespace ParaConfig
 
 			float diff = cmdSet.values.so.toFloat() - cmdSet.values.is.toFloat();
 
-			if (diff < 7)
+			if (diff < 20)
 			{
 				return true;
 			}
@@ -485,11 +486,28 @@ namespace ParaConfig
 			gpDmc1380->SetOutput(8 + 16, 1);
 			return true;
 		}
+		//
+		if (_getAcSource() < 5)
+		{
+			gpDmc1380->SetPos(0, 0);
+			gpDmc1380->RelMove(0, 100 * 10, 3000);
 
+			while (!gpDmc1380->CheckDone(0))
+			{
+				Sleep(10);
+			}
+
+			if (_getAcSource() < 5)
+			{
+				return false;
+			}
+		}
+
+		//
 		float curValue(0.0);
 		float setValue = cmdSet.values.so.toFloat();
 
-		for (size_t i = 0; i < 20; i++)
+		for (size_t i = 0; i < 10; i++)
 		{
 			curValue = _getAcSource();
 
@@ -550,6 +568,11 @@ namespace ParaConfig
 			tLed = tLed.left(3);
 		}
 		//
+		if (tLed.isEmpty())
+		{
+			ledEflag = true;
+		}
+		
 		if (cmdSet.values.so.contains("."))
 		{
 			auto index = cmdSet.values.so.indexOf(".");
@@ -574,6 +597,8 @@ namespace ParaConfig
 				msg += cmdSet.values.so;
 				return false;
 			}
+
+			cmdSet.values.is += "(r)";
 		}
 
 		if (cmdSet.values.is == "Ab5")
@@ -766,35 +791,34 @@ namespace ParaConfig
 			msg += QStringLiteral("LED:%0 ").arg(tLed);
 			msg += QStringLiteral("DCV:%0 ").arg(tdcV);
 
-			QString tDiff = QString::number(qAbs(tLed - tdcV), 'f', 3);
+			QString tDiff = QString::number(qAbs(tLed - tdcV), 'f', 1);
 
 			cmdSet.values.is = tDiff;
 			if (_checkSet(cmdSet.values) == false)
 			{
-				cmdSet.values.is = QString("%1-%2=%3").arg(tLed).arg(tdcV).arg(tDiff);
+				cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 0, 'f', 1).arg(tdcV, 0, 'f', 1).arg(tDiff);
 				goto Error;
 			}
-			cmdSet.values.is = QString("%1-%2=%3").arg(tLed).arg(tdcV).arg(tDiff);
+			cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 0, 'f', 1).arg(tdcV, 0, 'f', 1).arg(tDiff);
 		}
 		else if (cmdSet.cmd == "LED-DCC")
 		{
 			cmdSet.unit = "A";
 			float tLed = _getLedValue();
 			float tDcc = _getDcCurr();
-		
+			
 			msg += QStringLiteral("LED:%0 ").arg(tLed);
 			msg += QStringLiteral("DCC:%0 ").arg(tDcc);
 
-			QString tDiff = QString::number(qAbs(tLed - tDcc), 'f', 3);
+			QString tDiff = QString::number(qAbs(tLed - tDcc), 'f', 1);
 
 			cmdSet.values.is = tDiff;
 			if (_checkSet(cmdSet.values) == false)
 			{
-				cmdSet.values.is = QString("%1-%2=%3").arg(tLed).arg(tDcc).arg(tDiff);
+				cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 0, 'f', 1).arg(tDcc, 0, 'f', 1).arg(tDiff);
 				goto Error;
 			}
-		//	cmdSet.values.is = QString::number(tLed) + "-" + QString::number(tDcc);
-			cmdSet.values.is = QString("%1-%2=%3").arg(tLed).arg(tDcc).arg(tDiff);
+			cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 0, 'f', 1).arg(tDcc, 0, 'f', 1).arg(tDiff);
 		}
 		else if (cmdSet.cmd == "ACV-ACS")
 		{
@@ -873,7 +897,7 @@ namespace ParaConfig
 				msg += cmdSet.values.so;
 				goto Error;
 			}
-
+			cmdSet.values.is += "(r)";
 		}
 		else if (cmdSet.cmd == "LIGHT")
 		{
@@ -903,6 +927,7 @@ namespace ParaConfig
 					msg += cmdSet.values.so;
 					goto Error;
 				}
+				cmdSet.values.is += "(r)";
 			}
 		}
 		else if (cmdSet.cmd == "GROUND")

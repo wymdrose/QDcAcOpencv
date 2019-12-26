@@ -32,6 +32,7 @@
 #pragma comment(lib, "KeySight.lib")
 #pragma comment(lib, "TubeKnn.lib")
 
+extern  bool ledEflag;
 extern  Ui::QDcAcOpencvClass* gpUi;
 extern  QString gExePath;
 extern  std::shared_ptr<Drose::MySignalUi> gpSignal;
@@ -53,6 +54,7 @@ extern  std::vector<std::vector<QStringList>> gTestVector2;
 extern  std::shared_ptr<pvCameraSnapshoter>   gpMycamera;
 
 #define GLOBAL \
+bool ledEflag;\
 Ui::QDcAcOpencvClass* gpUi;\
 QString gExePath;\
 std::shared_ptr<Drose::MySignalUi> gpSignal;\
