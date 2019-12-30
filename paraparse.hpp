@@ -459,7 +459,11 @@ namespace ParaConfig
 			}
 			else if (cmdSet.cmd.right(1) == "R")
 			{
-
+				cmdSet.unit = "ohm";
+				
+				float resis = gpKs34970A_2A->getMeasure(gpKs34970A_2A->resistance, "104");
+				cmdSet.values.is = QString::number(resis);
+				msg += QStringLiteral("µÁ◊Ë ").arg(cmdSet.values.is);
 			}
 			else
 			{
@@ -618,7 +622,7 @@ namespace ParaConfig
 	{
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
 
-		if (cmdSet.cmd.toUpper() == "DCV")
+		if (cmdSet.cmd.left(3).toUpper() == "DCV")
 		{
 			cmdSet.unit = "V";
 			if (cmdSet.type == SET)
@@ -1085,6 +1089,19 @@ namespace ParaConfig
 				goto Error;
 			}
 		}
+		else if (cmdSet.cmd == "AuxiliaryACV2" || cmdSet.cmd == "AuxiliaryACV02")
+		{
+			cmdSet.unit = "V";
+			float tValue = gpKs34970A_2A->getMeasure(gpKs34970A_2A->voltageAc, "118");
+			msg += QStringLiteral("AuxiliaryACV2:%0 ").arg(tValue);
+
+			cmdSet.values.is = QString::number(tValue, 'f', 0);
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				goto Error;
+			}
+		}
 		else
 		{
 			msg += QStringLiteral(" Œﬁ–ß√¸¡Ó :%0").arg(cmdSet.cmd);
@@ -1167,9 +1184,11 @@ namespace ParaConfig
 
 	inline void cmdConver(CmdSet& CmdSet, QString& dataline)
 	{
-		if (CmdSet.cmd == "DCV")
+		if (CmdSet.cmd.left(3) == "DCV")
 		{
-			CmdSet.cmd = "Vdc_in";
+			QString right = CmdSet.cmd.right(CmdSet.cmd.length() - 3);
+			CmdSet.cmd = "Vdc_in_" + right;
+			 
 		}
 		else if (CmdSet.cmd == "ACV")
 		{

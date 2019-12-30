@@ -580,9 +580,6 @@ void _txtHeader(QStringList& tDataList)
 
 void Drose::MyThread2::run(){
 	
-
-//	float ar = _getResistance();
-
 	gpSignal->showMsgSignal(gpUi->textBrowser, "run start.");
 
 	QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
