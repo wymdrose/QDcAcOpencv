@@ -15,6 +15,7 @@ VisionPreview::VisionPreview(QWidget *parent)
 	timer->start(100);
 
 	gpChroma62000H->setVoltage("13.0");
+	gpChroma62000H->setCurrent("370");
 	gpChroma62000H->confOutput(true);
 
 	/*

@@ -630,9 +630,7 @@ namespace ParaConfig
 				msg += QStringLiteral("[设置DC电压:%0V] ").arg(cmdSet.values.so);
 				gpChroma62000H->setVoltage(cmdSet.values.so);
 				gpChroma62000H->confOutput(true);
-				Sleep(500);
-			//	gpChroma62000H->setVoltage(QString::number(2 * cmdSet.values.so.toFloat() - _getDcVolt()));
-				 
+				Sleep(500);	 
 			}
 			else if (cmdSet.type == CHECK)
 			{
@@ -789,21 +787,30 @@ namespace ParaConfig
 		else if (cmdSet.cmd == "LED-DCV" || cmdSet.cmd == "DCV-LED")
 		{
 			cmdSet.unit = "V";
-			float tLed = _getLedValue(true);
-			float tdcV = _getDcVolt();
 
-			msg += QStringLiteral("LED:%0 ").arg(tLed);
-			msg += QStringLiteral("DCV:%0 ").arg(tdcV);
-
-			QString tDiff = QString::number(qAbs(tLed - tdcV), 'f', 1);
-
-			cmdSet.values.is = tDiff;
-			if (_checkSet(cmdSet.values) == false)
+			for (size_t i = 0; i < 3; i++)
 			{
-				cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 0, 'f', 1).arg(tdcV, 0, 'f', 1).arg(tDiff);
-				goto Error;
+				float tLed = _getLedValue(true);
+				float tdcV = _getDcVolt();
+				Sleep(200);
+				QString tDiff = QString::number(qAbs(tLed - tdcV), 'f', 1);
+				cmdSet.values.is = tDiff;
+				if (_checkSet(cmdSet.values) == true)
+				{
+					msg += QStringLiteral("LED:%0 ").arg(tLed);
+					msg += QStringLiteral("DCV:%0 ").arg(tdcV);
+					cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 0, 'f', 1).arg(tdcV, 0, 'f', 1).arg(tDiff);
+					return true;
+				}
+
+				if (i == 2)
+				{
+					msg += QStringLiteral("LED:%0 ").arg(tLed);
+					msg += QStringLiteral("DCV:%0 ").arg(tdcV);
+					cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 0, 'f', 1).arg(tdcV, 0, 'f', 1).arg(tDiff);
+					goto Error;
+				}
 			}
-			cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 0, 'f', 1).arg(tdcV, 0, 'f', 1).arg(tDiff);
 		}
 		else if (cmdSet.cmd == "LED-DCC")
 		{
@@ -838,23 +845,6 @@ namespace ParaConfig
 				goto Error;
 			}
 
-			/*
-			float tACV = _getAcVolt();
-			float tACS = _getAcSource();
-
-			msg += QStringLiteral("AC输出:%0 ").arg(tACV);
-			msg += QStringLiteral("AC输入:%0 ").arg(tACS);
-
-			cmdSet.values.is = QString::number(qAbs(tACV - tACS), 'f', 0);
-
-			if (_checkSet(cmdSet.values) == false)
-			{
-				cmdSet.values.is = QString::number(tACV, 'f', 0) + "-" + QString::number(tACS, 'f', 0);
-				goto Error;
-			}
-
-			cmdSet.values.is = QString::number(tACV, 'f', 0) + "-" + QString::number(tACS, 'f', 0);
-			*/
 		}
 		else if (cmdSet.cmd == "SPE")
 		{
