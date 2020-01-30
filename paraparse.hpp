@@ -400,7 +400,7 @@ namespace ParaConfig
 
 			float diff = cmdSet.values.so.toFloat() - cmdSet.values.is.toFloat();
 
-			if (diff < 20)
+			if (diff < 100)
 			{
 				return true;
 			}
@@ -569,7 +569,8 @@ namespace ParaConfig
 		}
 		if (tLed.length() > 3)
 		{
-			tLed = tLed.left(3);
+			auto index = cmdSet.values.so.indexOf(".");
+			tLed = tLed.remove(index, 1);
 		}
 		//
 		if (tLed.isEmpty())
@@ -990,7 +991,7 @@ namespace ParaConfig
 		{
 			cmdSet.unit = "A";
 			float tCurr(0.0);
-			tCurr = gpKs34970A_2A->getDcmVolt("109") * RESISTANCE;
+			tCurr = gpKs34970A_2A->getDcmVolt("109") * RESISTANCE2;
 
 			msg += QStringLiteral("USBC:%0 ").arg(fabs(tCurr));
 			cmdSet.values.is = QString("%1").arg(fabs(tCurr));

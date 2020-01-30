@@ -11,6 +11,7 @@ const int RESULT = 0;
 const int WT230_CH1 = 1;
 const int WT230_CH3 = 3;
 const float RESISTANCE = 10000;
+const float RESISTANCE2 = 1000;
 const float PULSE_PER_VOLT = 181.81;
 
 struct ValueS
