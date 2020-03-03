@@ -45,9 +45,23 @@ namespace ParaConfig
 
 	inline float _getDcCurr(){
 		QSettings settings(gExePath + "/cfg/paraHardware.ini", QSettings::IniFormat);
-		float tCurr(0.0);
-		tCurr = gpKs34970A_2A->getDcmVolt(settings.value("Channel/KsResistanceVolt").toString()) * RESISTANCE;
-		return fabs(tCurr);
+		float tCurr(1.2);
+		tCurr = gpKs34970A_2A->getDcmVolt(settings.value("Channel/KsResistanceVolt").toString()) * RESISTANCE;	
+		tCurr = fabs(tCurr);
+
+		float offSet = settings.value("offSet/dcc").toFloat();
+		
+		if (tCurr > 1.3)
+		{
+			return tCurr;
+		}
+
+		if (tCurr + offSet < 0)
+		{
+			return 0;
+		}
+
+		return tCurr + offSet;
 	}
 	
 	inline float _getFanValue(){
@@ -164,13 +178,26 @@ namespace ParaConfig
 		return tResult;
 	}
 
-	float inline _getLedValue(bool bPoint = false)
+	float inline _getLedValue(bool bPoint = false, QString so = "")
 	{
 		if (!bPoint){
 			return _getLedString().toFloat();
 		}
-		else{
-			return _getLedString().toFloat() / 10.0;
+		else
+		{
+			QString tLed;
+			tLed = _getLedString();
+			
+			if (so.contains("."))
+			{
+				auto index = so.indexOf(".");		
+				
+				if (tLed.size()>3)	tLed.remove(index, 1);
+				
+				tLed.insert(index, ".");
+			}
+			
+			return tLed.toFloat();
 		}
 	}
 
@@ -537,7 +564,8 @@ namespace ParaConfig
 		curValue = _getAcSource();
 		cmdSet.values.is = QString::number(curValue);
 
-		if (curValue > cmdSet.values.so.toFloat() + 1)
+		
+		if (curValue > cmdSet.values.so.toFloat() + 10)
 		{
 			return false;
 		}
@@ -719,12 +747,28 @@ namespace ParaConfig
 		else if (cmdSet.cmd.left(3) == "ACS")
 		{
 			cmdSet.unit = "V";
-			if (_acsPrepare(cmdSet, msg) == false)
+
+			if (cmdSet.type == SET)
 			{
+				if (_acsPrepare(cmdSet, msg) == false)
+				{
+					msg += QStringLiteral("AC输入电压调节失败:") + cmdSet.values.is;
+					goto Error;
+				}
 				msg += QStringLiteral("AC输入电压:") + cmdSet.values.is;
-				goto Error;
 			}
-			msg += QStringLiteral("AC输入电压:") + cmdSet.values.is;
+			else if (cmdSet.type == CHECK)
+			{
+				float curValue = _getAcSource();
+				cmdSet.values.is = QString::number(curValue);
+				msg += QStringLiteral("ACS %0 ").arg(cmdSet.values.is);
+
+				if (_checkSet(cmdSet.values) == false)
+				{
+					goto Error;
+				}
+			}
+			
 		}
 		else if (cmdSet.cmd.left(4) == "GOUT")
 		{
@@ -791,7 +835,7 @@ namespace ParaConfig
 
 			for (size_t i = 0; i < 3; i++)
 			{
-				float tLed = _getLedValue(true);
+				float tLed = _getLedValue(true, cmdSet.values.so);
 				float tdcV = _getDcVolt();
 				Sleep(200);
 				QString tDiff = QString::number(qAbs(tLed - tdcV), 'f', 1);
@@ -1092,6 +1136,26 @@ namespace ParaConfig
 			{
 				goto Error;
 			}
+		}
+		else if (cmdSet.cmd == "VACOut-ACS")
+		{
+			//
+			cmdSet.unit = "V";
+			float tVac = _getAcVolt();
+			float tAcs = _getAcSource();
+			msg += QStringLiteral("VACOut:%0 ").arg(tVac);
+			msg += QStringLiteral("ACS:%0 ").arg(tAcs);
+
+			QString tDiff = QString::number(qAbs(tVac - tAcs), 'f', 1);
+			cmdSet.values.is = tDiff;
+
+			if (_checkSet(cmdSet.values) == false)
+			{
+				cmdSet.values.is = QString("%1-%2=%3").arg(tVac, 0, 'f', 1).arg(tAcs, 0, 'f', 1).arg(tDiff);
+				goto Error;
+			}
+			cmdSet.values.is = QString("%1-%2=%3").arg(tVac, 0, 'f', 1).arg(tAcs, 0, 'f', 1).arg(tDiff);
+
 		}
 		else
 		{
