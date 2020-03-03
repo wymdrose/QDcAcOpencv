@@ -857,7 +857,7 @@ namespace ParaConfig
 				}
 			}
 		}
-		else if (cmdSet.cmd == "LED-DCC")
+		else if (cmdSet.cmd == "LED-DCC" || cmdSet.cmd == "DCC-LED")
 		{
 			cmdSet.unit = "A";
 			float tLed = _getLedValue();
@@ -866,15 +866,15 @@ namespace ParaConfig
 			msg += QStringLiteral("LED:%0 ").arg(tLed);
 			msg += QStringLiteral("DCC:%0 ").arg(tDcc);
 
-			QString tDiff = QString::number(qAbs(tLed - tDcc), 'f', 1);
+			QString tDiff = QString::number(qAbs(tLed - tDcc), 'f', 0);
 
 			cmdSet.values.is = tDiff;
 			if (_checkSet(cmdSet.values) == false)
 			{
-				cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 0, 'f', 1).arg(tDcc, 0, 'f', 1).arg(tDiff);
+				cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 3, 'f', 0).arg(tDcc, 3, 'f', 0).arg(tDiff);
 				goto Error;
 			}
-			cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 0, 'f', 1).arg(tDcc, 0, 'f', 1).arg(tDiff);
+			cmdSet.values.is = QString("%1-%2=%3").arg(tLed, 3, 'f', 0).arg(tDcc, 3, 'f', 0).arg(tDiff);
 		}
 		else if (cmdSet.cmd == "ACV-ACS")
 		{
@@ -1292,32 +1292,32 @@ namespace ParaConfig
 
 					dataline += tCmdSet.cmd;
 
-					for (size_t i = 0; i < 15 - tCmdSet.cmd.length(); i++)
+					for (int i = 0; i < 15 - tCmdSet.cmd.length(); i++)
 					{
 						dataline += " ";
 					}
 					
 					dataline += tCmdSet.values.tu;
-					for (size_t i = 0; i < 10 - tCmdSet.values.tu.length(); i++)
+					for (int i = 0; i < 10 - tCmdSet.values.tu.length(); i++)
 					{
 						dataline += " ";
 					}
 
 					dataline += tCmdSet.values.to;
-					for (size_t i = 0; i < 11 - tCmdSet.values.to.length(); i++)
+					for (int i = 0; i < 11 - tCmdSet.values.to.length(); i++)
 					{
 						dataline += " ";
 					}
 
 					dataline += tCmdSet.values.is;
-					for (size_t i = 0; i < 17 - tCmdSet.values.is.length(); i++)
+					for (int i = 0; i < 17 - tCmdSet.values.is.length(); i++)
 					{
 						dataline += " ";
 					}
 
 					//
 					dataline += tCmdSet.unit;
-					for (size_t i = 0; i < 7 - tCmdSet.unit.length(); i++)
+					for (int i = 0; i < 7 - tCmdSet.unit.length(); i++)
 					{
 						dataline += " ";
 					}
