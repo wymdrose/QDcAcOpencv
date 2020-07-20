@@ -436,7 +436,8 @@ namespace ParaConfig
 
 		msg += "Error: __aclPrepare()";
 
-		return false;
+		return true; 
+	//	return false;
 
 	}
 
